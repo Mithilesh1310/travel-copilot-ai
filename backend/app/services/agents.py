@@ -762,8 +762,10 @@ class TravelAgentSystem:
             preferences=parsed.get("preferences")
         )
         
-        from .routing_engine import resolve_hyperlocal_info, calculate_cab_fare
+        from .routing_engine import resolve_hyperlocal_info, calculate_cab_fare, resolve_global_city
         org_info = resolve_hyperlocal_info(origin)
+        dst_global = resolve_global_city(destination)
+        
         cab_summary = ""
         if org_info.get("station_distance_km"):
             cab_summary = (
@@ -775,21 +777,32 @@ class TravelAgentSystem:
                 f"• Intercity Express Cab Fare: **₹{calculate_cab_fare(org_info['airport_distance_km'], 'uber_intercity'):.0f}**"
             )
 
+        global_advice = ""
+        if dst_global["country"] != "India":
+            global_advice = (
+                f"\n\n🌐 **Global Travel & Entry Guidance ({dst_global['city']}, {dst_global['country']})**:\n"
+                f"• **Passport & Visa**: Ensure passport is valid for 6+ months. Check E-Visa / ESTA / Transit Visa requirements.\n"
+                f"• **Airport Arrival Hub**: Flying into **{dst_global['airport']}**.\n"
+                f"• **Local Airport Transfer**: Connected via **{results[0]['legs'][-1]['provider']}** direct to {dst_global['city']}.\n"
+                f"• **Baggage Allowance**: Standard International Allowance is 25kg–30kg checked baggage + 7kg cabin baggage."
+            )
+
         reply = (
-            f"I have analyzed the travel channels between **{origin}** and **{destination}** "
+            f"I have analyzed global multi-modal travel routes between **{origin}** and **{destination}** "
             f"focusing on your preferences: **{parsed['preferences']['optimize_by'].replace('_', ' ').title()}**.\n\n"
-            f"I recommend a hybrid itinerary: **{results[0]['legs'][0]['transport_type']} → "
+            f"I recommend an international hybrid itinerary: **{results[0]['legs'][0]['transport_type']} → "
             f"{results[0]['legs'][-1]['transport_type']}**, taking **{results[0]['total_duration']} hours** and costing "
             f"**₹{results[0]['total_price']:.0f}**."
-            f"{cab_summary}\n\n"
+            f"{cab_summary}"
+            f"{global_advice}\n\n"
             f"*AI Recommendation Rationale:* {results[0]['ai_explanation']}"
         )
         
         follow_ups = [
-            f"Show cheapest flights from {origin} to {destination}",
-            f"Add this trip to my Itinerary Planner",
-            f"Are there any delays expected for {origin} to {destination}?",
-            f"What is the weather forecast for {destination}?"
+            f"Show cheapest international flights from {origin} to {destination}",
+            f"What is the visa policy for travelling to {destination}?",
+            f"Add this international trip to my Itinerary Planner",
+            f"What is the local weather forecast for {destination}?"
         ]
         
         return {

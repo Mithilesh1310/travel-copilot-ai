@@ -19,28 +19,99 @@ class LiveTravelAPIService:
         self.aviation_key = os.environ.get("AVIATIONSTACK_API_KEY", "").strip()
         self.openweather_key = os.environ.get("OPENWEATHER_API_KEY", "").strip()
 
+GLOBAL_AIRPORTS = {
+    # Americas
+    "usa": {"code": "JFK", "airport": "John F. Kennedy Int'l Airport (JFK)", "city": "New York", "country": "USA"},
+    "united states": {"code": "JFK", "airport": "John F. Kennedy Int'l Airport (JFK)", "city": "New York", "country": "USA"},
+    "america": {"code": "JFK", "airport": "John F. Kennedy Int'l Airport (JFK)", "city": "New York", "country": "USA"},
+    "new york": {"code": "JFK", "airport": "John F. Kennedy Int'l Airport (JFK)", "city": "New York", "country": "USA"},
+    "nyc": {"code": "JFK", "airport": "John F. Kennedy Int'l Airport (JFK)", "city": "New York", "country": "USA"},
+    "los angeles": {"code": "LAX", "airport": "Los Angeles Int'l Airport (LAX)", "city": "Los Angeles", "country": "USA"},
+    "san francisco": {"code": "SFO", "airport": "San Francisco Int'l Airport (SFO)", "city": "San Francisco", "country": "USA"},
+    "chicago": {"code": "ORD", "airport": "O'Hare Int'l Airport (ORD)", "city": "Chicago", "country": "USA"},
+    "toronto": {"code": "YYZ", "airport": "Toronto Pearson Int'l Airport (YYZ)", "city": "Toronto", "country": "Canada"},
+    "canada": {"code": "YYZ", "airport": "Toronto Pearson Int'l Airport (YYZ)", "city": "Toronto", "country": "Canada"},
+    
+    # Europe
+    "london": {"code": "LHR", "airport": "London Heathrow Airport (LHR)", "city": "London", "country": "UK"},
+    "uk": {"code": "LHR", "airport": "London Heathrow Airport (LHR)", "city": "London", "country": "UK"},
+    "united kingdom": {"code": "LHR", "airport": "London Heathrow Airport (LHR)", "city": "London", "country": "UK"},
+    "england": {"code": "LHR", "airport": "London Heathrow Airport (LHR)", "city": "London", "country": "UK"},
+    "paris": {"code": "CDG", "airport": "Paris Charles de Gaulle (CDG)", "city": "Paris", "country": "France"},
+    "france": {"code": "CDG", "airport": "Paris Charles de Gaulle (CDG)", "city": "Paris", "country": "France"},
+    "frankfurt": {"code": "FRA", "airport": "Frankfurt Airport (FRA)", "city": "Frankfurt", "country": "Germany"},
+    "germany": {"code": "FRA", "airport": "Frankfurt Airport (FRA)", "city": "Frankfurt", "country": "Germany"},
+    "berlin": {"code": "BER", "airport": "Berlin Brandenburg (BER)", "city": "Berlin", "country": "Germany"},
+    "amsterdam": {"code": "AMS", "airport": "Amsterdam Schiphol (AMS)", "city": "Amsterdam", "country": "Netherlands"},
+    "zurich": {"code": "ZRH", "airport": "Zurich Airport (ZRH)", "city": "Zurich", "country": "Switzerland"},
+    "switzerland": {"code": "ZRH", "airport": "Zurich Airport (ZRH)", "city": "Zurich", "country": "Switzerland"},
+    "rome": {"code": "FCO", "airport": "Rome Fiumicino Airport (FCO)", "city": "Rome", "country": "Italy"},
+    "italy": {"code": "FCO", "airport": "Rome Fiumicino Airport (FCO)", "city": "Rome", "country": "Italy"},
+    "barcelona": {"code": "BCN", "airport": "Barcelona El Prat (BCN)", "city": "Barcelona", "country": "Spain"},
+    "spain": {"code": "MAD", "airport": "Adolfo Suárez Madrid-Barajas (MAD)", "city": "Madrid", "country": "Spain"},
+
+    # Middle East
+    "dubai": {"code": "DXB", "airport": "Dubai Int'l Airport (DXB)", "city": "Dubai", "country": "UAE"},
+    "uae": {"code": "DXB", "airport": "Dubai Int'l Airport (DXB)", "city": "Dubai", "country": "UAE"},
+    "abu dhabi": {"code": "AUH", "airport": "Zayed Int'l Airport (AUH)", "city": "Abu Dhabi", "country": "UAE"},
+    "doha": {"code": "DOH", "airport": "Hamad Int'l Airport (DOH)", "city": "Doha", "country": "Qatar"},
+    "qatar": {"code": "DOH", "airport": "Hamad Int'l Airport (DOH)", "city": "Doha", "country": "Qatar"},
+    "istanbul": {"code": "IST", "airport": "Istanbul Airport (IST)", "city": "Istanbul", "country": "Turkey"},
+    "turkey": {"code": "IST", "airport": "Istanbul Airport (IST)", "city": "Istanbul", "country": "Turkey"},
+
+    # Asia & Pacific
+    "singapore": {"code": "SIN", "airport": "Singapore Changi Airport (SIN)", "city": "Singapore", "country": "Singapore"},
+    "tokyo": {"code": "NRT", "airport": "Tokyo Narita Airport (NRT)", "city": "Tokyo", "country": "Japan"},
+    "japan": {"code": "HND", "airport": "Tokyo Haneda Airport (HND)", "city": "Tokyo", "country": "Japan"},
+    "bangkok": {"code": "BKK", "airport": "Suvarnabhumi Airport (BKK)", "city": "Bangkok", "country": "Thailand"},
+    "thailand": {"code": "BKK", "airport": "Suvarnabhumi Airport (BKK)", "city": "Bangkok", "country": "Thailand"},
+    "bali": {"code": "DPS", "airport": "Ngurah Rai Int'l Airport (DPS)", "city": "Bali", "country": "Indonesia"},
+    "indonesia": {"code": "CGK", "airport": "Soekarno-Hatta Int'l (CGK)", "city": "Jakarta", "country": "Indonesia"},
+    "maldives": {"code": "MLE", "airport": "Velana Int'l Airport (MLE)", "city": "Male", "country": "Maldives"},
+    "hong kong": {"code": "HKG", "airport": "Hong Kong Int'l Airport (HKG)", "city": "Hong Kong", "country": "Hong Kong"},
+    "kuala lumpur": {"code": "KUL", "airport": "Kuala Lumpur Int'l (KUL)", "city": "Kuala Lumpur", "country": "Malaysia"},
+    "malaysia": {"code": "KUL", "airport": "Kuala Lumpur Int'l (KUL)", "city": "Kuala Lumpur", "country": "Malaysia"},
+    "seoul": {"code": "ICN", "airport": "Incheon Int'l Airport (ICN)", "city": "Seoul", "country": "South Korea"},
+    "korea": {"code": "ICN", "airport": "Incheon Int'l Airport (ICN)", "city": "Seoul", "country": "South Korea"},
+    "sydney": {"code": "SYD", "airport": "Sydney Kingsford Smith (SYD)", "city": "Sydney", "country": "Australia"},
+    "australia": {"code": "SYD", "airport": "Sydney Kingsford Smith (SYD)", "city": "Sydney", "country": "Australia"},
+    "melbourne": {"code": "MEL", "airport": "Melbourne Airport (MEL)", "city": "Melbourne", "country": "Australia"},
+
+    # India
+    "delhi": {"code": "DEL", "airport": "Indira Gandhi Int'l Airport (DEL)", "city": "Delhi", "country": "India"},
+    "kanpur": {"code": "LKO", "airport": "Lucknow Airport (LKO)", "city": "Kanpur", "country": "India"},
+    "lucknow": {"code": "LKO", "airport": "Lucknow Airport (LKO)", "city": "Lucknow", "country": "India"},
+    "mumbai": {"code": "BOM", "airport": "Chhatrapati Shivaji Airport (BOM)", "city": "Mumbai", "country": "India"},
+    "bangalore": {"code": "BLR", "airport": "Kempegowda Int'l Airport (BLR)", "city": "Bangalore", "country": "India"},
+    "bengaluru": {"code": "BLR", "airport": "Kempegowda Int'l Airport (BLR)", "city": "Bangalore", "country": "India"},
+    "chennai": {"code": "MAA", "airport": "Chennai Int'l Airport (MAA)", "city": "Chennai", "country": "India"},
+    "kolkata": {"code": "CCU", "airport": "Netaji Subhash Chandra Bose Airport (CCU)", "city": "Kolkata", "country": "India"},
+    "hyderabad": {"code": "HYD", "airport": "Rajiv Gandhi Int'l Airport (HYD)", "city": "Hyderabad", "country": "India"},
+    "jaipur": {"code": "JAI", "airport": "Jaipur Airport (JAI)", "city": "Jaipur", "country": "India"},
+    "goa": {"code": "GOI", "airport": "Manohar Int'l Airport (GOI)", "city": "Goa", "country": "India"},
+    "pune": {"code": "PNQ", "airport": "Pune Airport (PNQ)", "city": "Pune", "country": "India"},
+    "ahmedabad": {"code": "AMD", "airport": "Sardar Vallabhbhai Patel Airport (AMD)", "city": "Ahmedabad", "country": "India"},
+    "varanasi": {"code": "VNS", "airport": "Lal Bahadur Shastri Airport (VNS)", "city": "Varanasi", "country": "India"}
+}
+
+class LiveTravelAPIService:
+    """
+    Live Travel Data Integrator supporting SerpApi (Google Flights & Google Hotels), AviationStack,
+    OpenWeather, and public regional transport APIs for Flights, Hotels, Trains, Buses, and Weather.
+    """
+    def __init__(self):
+        load_dotenv()
+        self.serpapi_key = os.environ.get("SERPAPI_API_KEY", "").strip()
+        self.aviation_key = os.environ.get("AVIATIONSTACK_API_KEY", "").strip()
+        self.openweather_key = os.environ.get("OPENWEATHER_API_KEY", "").strip()
+
     def _city_to_airport_code(self, city: str) -> str:
-        city_lower = city.lower()
-        mapping = {
-            "delhi": "DEL",
-            "kanpur": "LKO",
-            "lucknow": "LKO",
-            "bangalore": "BLR",
-            "bengaluru": "BLR",
-            "mumbai": "BOM",
-            "jaipur": "JAI",
-            "hyderabad": "HYD",
-            "chennai": "MAA",
-            "kolkata": "CCU",
-            "pune": "PNQ",
-            "goa": "GOI",
-            "ahmedabad": "AMD",
-            "varanasi": "VNS"
-        }
-        for k, v in mapping.items():
-            if k in city_lower:
-                return v
-        return "DEL"
+        city_lower = city.strip().lower()
+        for key, data in GLOBAL_AIRPORTS.items():
+            if key in city_lower or city_lower in key:
+                return data["code"]
+        clean = "".join([c for c in city_lower if c.isalnum()])
+        return clean[:3].upper() if len(clean) >= 3 else "DEL"
 
     def fetch_live_flights(self, origin: str, destination: str) -> List[Dict[str, Any]]:
         """

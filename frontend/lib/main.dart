@@ -37,19 +37,47 @@ class _AiTravelCopilotAppState extends State<AiTravelCopilotApp> {
         colorSchemeSeed: const Color(0xFF6366F1),
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         cardTheme: CardThemeData(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 0,
+          color: const Color(0xFFFFFFFF),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+          ),
         ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         colorSchemeSeed: const Color(0xFF818CF8),
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        scaffoldBackgroundColor: const Color(0xFF090A0F),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF0D0F17),
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
         cardTheme: CardThemeData(
-          elevation: 4,
-          color: const Color(0xFF1E293B),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 0,
+          color: const Color(0xFF12151E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFF1E2433), width: 1),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF0D1017),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF1E2433)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF1E2433)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+          ),
         ),
       ),
       home: MainDashboardScreen(
@@ -153,7 +181,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   void _initChat() {
     _chatMessages.add(ChatMessage(
       text:
-          "👋 Hello! I am your AI Travel Copilot. Tell me where you'd like to go, your budget, or preferences (e.g., 'Find cheapest route from Kanpur to Bangalore under ₹5000').",
+          "👋 Hello! I am your AI Travel Copilot. Tell me where you'd like to go, your budget, or preferences (e.g., 'Find cheapest route from Kanpur to Bangalore budget ₹5000').",
       isBot: true,
       followUps: [
         "Cheapest Kanpur to Bangalore under ₹5000",
@@ -203,7 +231,6 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     });
 
     final res = await ApiService.sendChatMessage(text);
-
     if (mounted) {
       setState(() {
         _chatMessages.add(ChatMessage(
@@ -225,9 +252,21 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     final unreadNotifs = _notifications.where((n) => !n.isRead).length;
+    final isDark = widget.isDarkMode;
+
+    final appBarBg = isDark ? const Color(0xFF0D0F17) : Colors.white;
+    final sidebarBg = isDark ? const Color(0xFF0D0F17) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF1B202D) : const Color(0xFFE2E8F0);
+    final titleTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final inputSearchBg = isDark ? const Color(0xFF141722) : const Color(0xFFF1F5F9);
+    final inputSearchBorder = isDark ? const Color(0xFF222736) : const Color(0xFFCBD5E1);
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: appBarBg,
+        titleSpacing: 24,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         title: Row(
           children: [
             Container(
@@ -237,32 +276,93 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                   colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
                 ),
                 borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
-              child: const Icon(Icons.flight_takeoff, color: Colors.white, size: 20),
+              child: const Icon(Icons.bolt, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 12),
             Text(
-              'AI Travel Copilot',
+              'TRAVEL COPILOT',
               style: TextStyle(
-                fontWeight: FontWeight.bold,
-                foreground: Paint()
-                  ..shader = const LinearGradient(
-                    colors: [Color(0xFF818CF8), Color(0xFFC084FC)],
-                  ).createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                letterSpacing: 1.2,
+                color: titleTextColor,
               ),
             ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+              ),
+              child: const Text(
+                'AI v2.0 LIVE',
+                style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              ),
+            ),
+            if (isDesktop) ...[
+              const Spacer(),
+              // Notion/Linear Keyboard Shortcut Search Bar Style
+              InkWell(
+                onTap: () => setState(() => _selectedIndex = 2),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: inputSearchBg,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: inputSearchBorder),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search, size: 14, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Quick route or destination search...',
+                        style: TextStyle(color: isDark ? Colors.grey : const Color(0xFF64748B), fontSize: 12),
+                      ),
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF222736) : const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '⌘K',
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : const Color(0xFF475569),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Spacer(),
+            ],
           ],
         ),
         actions: [
           IconButton(
-            icon: Icon(widget.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+            icon: Icon(widget.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined, size: 20),
             tooltip: 'Toggle Theme',
             onPressed: widget.onToggleTheme,
           ),
           Stack(
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_none),
+                icon: const Icon(Icons.notifications_none_outlined, size: 20),
                 tooltip: 'Notifications',
                 onPressed: () {
                   setState(() => _selectedIndex = 5);
@@ -275,14 +375,14 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: Colors.redAccent,
+                      color: Color(0xFF6366F1),
                       shape: BoxShape.circle,
                     ),
                     child: Text(
                       '$unreadNotifs',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -294,20 +394,25 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           InkWell(
             onTap: () => _showAuthModal(context),
             borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: inputSearchBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: inputSearchBorder),
+              ),
               child: Row(
                 children: [
                   CircleAvatar(
                     backgroundColor: _isLoggedIn ? const Color(0xFF10B981) : const Color(0xFF6366F1),
-                    radius: 16,
+                    radius: 13,
                     child: Text(
                       _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(_isLoggedIn ? _userName : 'Sign In', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(_isLoggedIn ? _userName : 'Sign In', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: titleTextColor)),
                 ],
               ),
             ),
@@ -318,49 +423,24 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
       body: Row(
         children: [
           if (isDesktop)
-            NavigationRail(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) {
-                setState(() => _selectedIndex = index);
-              },
-              labelType: NavigationRailLabelType.all,
-              destinations: const [
-                NavigationRailDestination(
-                  icon: Icon(Icons.dashboard_outlined),
-                  selectedIcon: Icon(Icons.dashboard),
-                  label: Text('Home'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.auto_awesome_outlined),
-                  selectedIcon: Icon(Icons.auto_awesome),
-                  label: Text('AI Chat'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.search),
-                  selectedIcon: Icon(Icons.manage_search),
-                  label: Text('Search'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.account_balance_wallet_outlined),
-                  selectedIcon: Icon(Icons.account_balance_wallet),
-                  label: Text('Budget'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.map_outlined),
-                  selectedIcon: Icon(Icons.map),
-                  label: Text('Itinerary'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.notifications_outlined),
-                  selectedIcon: Icon(Icons.notifications),
-                  label: Text('Alerts'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.analytics_outlined),
-                  selectedIcon: Icon(Icons.analytics),
-                  label: Text('Analytics'),
-                ),
-              ],
+            Container(
+              width: 220,
+              decoration: BoxDecoration(
+                color: sidebarBg,
+                border: Border(right: BorderSide(color: borderColor)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  _buildLinearSidebarItem(0, Icons.space_dashboard_rounded, Icons.space_dashboard_outlined, 'Dashboard'),
+                  _buildLinearSidebarItem(1, Icons.chat_bubble_rounded, Icons.chat_bubble_outline_rounded, 'AI Copilot Chat'),
+                  _buildLinearSidebarItem(2, Icons.travel_explore_rounded, Icons.explore_outlined, 'Route Search'),
+                  _buildLinearSidebarItem(3, Icons.account_balance_wallet_rounded, Icons.account_balance_wallet_outlined, 'Financial Advisor'),
+                  _buildLinearSidebarItem(4, Icons.map_rounded, Icons.map_outlined, 'Itinerary Hub'),
+                  _buildLinearSidebarItem(5, Icons.notifications_active_rounded, Icons.notifications_active_outlined, 'Real-Time Alerts'),
+                  _buildLinearSidebarItem(6, Icons.insights_rounded, Icons.analytics_outlined, 'Analytics & CO2'),
+                ],
+              ),
             ),
           Expanded(
             child: _buildBodyTab(),
@@ -388,6 +468,52 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     );
   }
 
+  Widget _buildLinearSidebarItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
+    final isSelected = _selectedIndex == index;
+    final isDark = widget.isDarkMode;
+
+    final activeBg = const Color(0xFF6366F1).withValues(alpha: 0.12);
+    final activeBorder = const Color(0xFF6366F1).withValues(alpha: 0.3);
+    final activeTextColor = isDark ? Colors.white : const Color(0xFF4F46E5);
+    final activeIconColor = const Color(0xFF6366F1);
+
+    final inactiveTextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final inactiveIconColor = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+
+    return InkWell(
+      onTap: () => setState(() => _selectedIndex = index),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? activeBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? activeBorder : Colors.transparent,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? activeIcon : inactiveIcon,
+              size: 18,
+              color: isSelected ? activeIconColor : inactiveIconColor,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? activeTextColor : inactiveTextColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBodyTab() {
     switch (_selectedIndex) {
       case 0:
@@ -412,27 +538,29 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   // TAB 0: HOME / DASHBOARD
   Widget _buildHomeTab() {
     final currencyFormat = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+    final isDark = widget.isDarkMode;
+    final headingColor = isDark ? Colors.white : const Color(0xFF0F172A);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(28.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Banner Card
+          // Ultra-Minimal Hero Banner
           Container(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF4F46E5), Color(0xFF7C3AED), Color(0xFFC084FC)],
+                colors: [Color(0xFF1E1B4B), Color(0xFF312E81), Color(0xFF4F46E5)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(28),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6366F1).withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                  blurRadius: 30,
+                  offset: const Offset(0, 12),
                 ),
               ],
             ),
@@ -443,48 +571,66 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: Colors.white.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.bolt, color: Colors.amber, size: 16),
-                            SizedBox(width: 4),
+                            SizedBox(width: 6),
                             Text(
-                              'Multi-Agent AI Engine Active',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                              'Multi-Agent AI Travel Engine v2.0',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
                       const Text(
-                        'Smartest Route Recommender',
+                        'Global & Hyper-Local Multi-Modal Travel Copilot',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
+                          fontSize: 30,
                           fontWeight: FontWeight.bold,
+                          height: 1.2,
+                          color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       const Text(
-                        'AI analyzes flights, trains, buses, cabs & metro to find your optimal hybrid route — not just the cheapest.',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                        'AI dynamically pathfinds across Flights, Trains, Buses, Metro, & Uber/Ola Cabs with exact pickup fare calculation.',
+                        style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
                       ),
-                      const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        onPressed: () => setState(() => _selectedIndex = 1),
-                        icon: const Icon(Icons.auto_awesome),
-                        label: const Text('Start AI Chat'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF4F46E5),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => setState(() => _selectedIndex = 1),
+                            icon: const Icon(Icons.auto_awesome, size: 18),
+                            label: const Text('Launch AI Chat', style: TextStyle(fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF4F46E5),
+                              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 8,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          OutlinedButton.icon(
+                            onPressed: () => setState(() => _selectedIndex = 2),
+                            icon: const Icon(Icons.travel_explore, size: 18),
+                            label: const Text('Search Routes', style: TextStyle(fontWeight: FontWeight.bold)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -495,7 +641,16 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           const SizedBox(height: 32),
 
           // Analytics Cards Summary
-          Text('Your Copilot Savings', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              const Icon(Icons.insights, color: Color(0xFF6366F1), size: 22),
+              const SizedBox(width: 10),
+              Text(
+                'Copilot Impact Metrics',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: headingColor),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -505,30 +660,30 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 2.2,
+                childAspectRatio: 2.3,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildStatMetricCard(
-                    title: 'Money Saved',
+                    title: 'Total Money Saved',
                     value: currencyFormat.format(_analytics?.moneySaved ?? 5550),
-                    subtitle: 'vs standard bookings',
-                    icon: Icons.savings,
+                    subtitle: 'vs standard single-mode booking',
+                    icon: Icons.savings_outlined,
                     iconColor: const Color(0xFF10B981),
                   ),
                   _buildStatMetricCard(
-                    title: 'Time Saved',
+                    title: 'Transit Time Saved',
                     value: '${_analytics?.hoursSaved ?? 13.5} Hours',
-                    subtitle: 'in layovers & transit',
-                    icon: Icons.schedule,
-                    iconColor: Colors.blueAccent,
+                    subtitle: 'optimized layovers & connection timings',
+                    icon: Icons.schedule_outlined,
+                    iconColor: const Color(0xFF3B82F6),
                   ),
                   _buildStatMetricCard(
-                    title: 'CO2 Offset',
+                    title: 'CO2 Footprint Offset',
                     value: '${_analytics?.co2Saved ?? 105} kg',
-                    subtitle: 'eco-friendly selections',
-                    icon: Icons.eco,
-                    iconColor: Colors.green,
+                    subtitle: 'via eco-friendly rail & green buses',
+                    icon: Icons.eco_outlined,
+                    iconColor: const Color(0xFF10B981),
                   ),
                 ],
               );
@@ -537,13 +692,24 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           const SizedBox(height: 32),
 
           // Quick Route Suggestions
-          Text('Recommended Hybrid Routes', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+          Row(
+            children: [
+              const Icon(Icons.alt_route, color: Color(0xFF8B5CF6), size: 22),
+              const SizedBox(width: 10),
+              Text(
+                'Popular Multi-Modal Recommendations',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: headingColor),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
-          _buildQuickRouteCard('Kanpur ➔ Bangalore', 'Cab + Train + Flight + Metro', '₹4,850', '4.5 hrs', 'Best Value'),
+          _buildQuickRouteCard('Kanpur ➔ Bangalore', 'Uber Auto + Vande Bharat Train + IndiGo Flight + Metro', '₹4,850', '4.5 hrs', '✨ Best Value'),
           const SizedBox(height: 12),
-          _buildQuickRouteCard('Delhi ➔ Mumbai', 'Airport Express Metro + Flight', '₹3,400', '3.1 hrs', 'Fastest'),
+          _buildQuickRouteCard('Kanpur ➔ USA (New York JFK)', 'Uber Intercity + Flight Transfer + Emirates Int\'l Flight + NYC Subway', '₹51,542', '18.2 hrs', '🌐 Global Route'),
           const SizedBox(height: 12),
-          _buildQuickRouteCard('Lucknow ➔ Jaipur', 'Vande Bharat Train + Local Cab', '₹1,650', '6.0 hrs', 'Eco Friendly'),
+          _buildQuickRouteCard('Delhi ➔ London (Heathrow)', 'Uber Go + British Airways AI-115 Direct + Heathrow Express', '₹41,498', '11.5 hrs', '🇬🇧 International'),
+          const SizedBox(height: 12),
+          _buildQuickRouteCard('Delhi ➔ Mumbai', 'Airport Express Metro + Air India Flight + Uber Go', '₹3,400', '3.1 hrs', '⚡ Non-Stop'),
         ],
       ),
     );
@@ -556,73 +722,120 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     required IconData icon,
     required Color iconColor,
   }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: iconColor, size: 28),
+    final isDark = widget.isDarkMode;
+    final cardBg = isDark ? const Color(0xFF111827) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0);
+    final titleColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final valueColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final subtitleColor = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? iconColor.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: iconColor.withValues(alpha: 0.25)),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  const SizedBox(height: 4),
-                  Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                ],
-              ),
+            child: Icon(icon, color: iconColor, size: 26),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title, style: TextStyle(color: titleColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: valueColor)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: TextStyle(color: subtitleColor, fontSize: 11)),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildQuickRouteCard(String title, String subtitle, String price, String time, String tag) {
-    return Card(
+    final isDark = widget.isDarkMode;
+    final cardBg = isDark ? const Color(0xFF111827) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0);
+    final titleColor = isDark ? Colors.white : const Color(0xFF0F172A);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: const CircleAvatar(
-          backgroundColor: Color(0xFF6366F1),
-          child: Icon(Icons.alt_route, color: Colors.white, size: 20),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+            ),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: const Icon(Icons.alt_route, color: Colors.white, size: 20),
         ),
         title: Row(
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: titleColor)),
             const SizedBox(width: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
+                color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.3)),
               ),
-              child: Text(tag, style: const TextStyle(color: Color(0xFF818CF8), fontSize: 11, fontWeight: FontWeight.bold)),
+              child: Text(tag, style: const TextStyle(color: Color(0xFF6366F1), fontSize: 11, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
-        subtitle: Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(subtitle, style: TextStyle(color: isDark ? Colors.grey : const Color(0xFF64748B), fontSize: 12)),
+        ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(price, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF10B981))),
-            Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            Text(price, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF10B981))),
+            const SizedBox(height: 2),
+            Text(time, style: TextStyle(color: isDark ? Colors.grey : const Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w500)),
           ],
         ),
         onTap: () {
           _originController.text = title.split('➔')[0].trim();
-          _destinationController.text = title.split('➔')[1].trim();
+          _destinationController.text = title.split('➔')[1].split('(')[0].trim();
           setState(() => _selectedIndex = 2);
           _handleSearch();
         },
@@ -795,141 +1008,338 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
   // TAB 2: UNIVERSAL SEARCH & RESULTS
   Widget _buildSearchTab() {
+    final isDark = widget.isDarkMode;
+
+    final heroGradient = isDark
+        ? const LinearGradient(
+            colors: [Color(0xFF111827), Color(0xFF1F2937)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : const LinearGradient(
+            colors: [Color(0xFFEEF2FF), Color(0xFFF5F3FF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+
+    final heroBorder = isDark ? const Color(0xFF374151) : const Color(0xFFC7D2FE);
+    final titleColor = isDark ? Colors.white : const Color(0xFF1E1B4B);
+    final subtitleColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
+    final inputBg = isDark ? const Color(0xFF0D1017) : Colors.white;
+    final inputBorder = isDark ? const Color(0xFF1E2433) : const Color(0xFFCBD5E1);
+    final inputTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final labelTextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search Control Box
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Universal Multi-Modal Search', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _originController,
-                          decoration: const InputDecoration(
-                            labelText: 'Origin City',
-                            prefixIcon: Icon(Icons.location_on),
-                            border: OutlineInputBorder(),
+          // Minimalist Hero Search Box
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              gradient: heroGradient,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: heroBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark ? const Color(0xFF6366F1).withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.explore, color: Colors.white, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Universal Multi-Modal Route Finder',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: titleColor,
                           ),
                         ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Icon(Icons.swap_horiz),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _destinationController,
-                          decoration: const InputDecoration(
-                            labelText: 'Destination City',
-                            prefixIcon: Icon(Icons.flight_land),
-                            border: OutlineInputBorder(),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Search global & hyper-local routes across Flights, Rail, Metro, Cabs & Buses',
+                          style: TextStyle(color: subtitleColor, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Origin and Destination Row with Swap Button
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _originController,
+                        style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                        decoration: InputDecoration(
+                          labelText: 'Origin Location / City',
+                          labelStyle: TextStyle(color: labelTextColor),
+                          hintText: 'e.g., PSIT Kanpur, Delhi, London',
+                          prefixIcon: const Icon(Icons.my_location, color: Color(0xFF6366F1)),
+                          filled: true,
+                          fillColor: inputBg,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Budget Limit: ₹${_budget.toInt()}'),
-                            Slider(
-                              value: _budget,
-                              min: 1000,
-                              max: 20000,
-                              divisions: 38,
-                              label: '₹${_budget.toInt()}',
-                              onChanged: (v) => setState(() => _budget = v),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: _selectedOptimizeBy,
-                          decoration: const InputDecoration(
-                            labelText: 'Optimize Goal',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: 'best_value', child: Text('Best Value')),
-                            DropdownMenuItem(value: 'cheapest', child: Text('Cheapest Rate')),
-                            DropdownMenuItem(value: 'fastest', child: Text('Fastest Duration')),
-                            DropdownMenuItem(value: 'eco_friendly', child: Text('Eco Friendly (CO2)')),
-                            DropdownMenuItem(value: 'lowest_risk', child: Text('Lowest Delay Risk')),
-                          ],
-                          onChanged: (v) => setState(() => _selectedOptimizeBy = v!),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 16,
-                    children: [
-                      FilterChip(
-                        label: const Text('Non-Stop Only'),
-                        selected: _nonStopOnly,
-                        onSelected: (v) => setState(() => _nonStopOnly = v),
-                      ),
-                      FilterChip(
-                        label: const Text('Refundable Tickets'),
-                        selected: _refundableOnly,
-                        onSelected: (v) => setState(() => _refundableOnly = v),
-                      ),
-                      FilterChip(
-                        label: const Text('Eco Friendly Rail/Bus'),
-                        selected: _ecoFriendlyOnly,
-                        onSelected: (v) => setState(() => _ecoFriendlyOnly = v),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _handleSearch,
-                      icon: const Icon(Icons.search),
-                      label: const Text('Find Optimal Hybrid Routes'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6366F1),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: IconButton.filled(
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                          foregroundColor: const Color(0xFF6366F1),
+                        ),
+                        icon: const Icon(Icons.swap_horiz, size: 22),
+                        onPressed: () {
+                          final temp = _originController.text;
+                          setState(() {
+                            _originController.text = _destinationController.text;
+                            _destinationController.text = temp;
+                          });
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: _destinationController,
+                        style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                        decoration: InputDecoration(
+                          labelText: 'Destination Location / Country',
+                          labelStyle: TextStyle(color: labelTextColor),
+                          hintText: 'e.g., Bangalore, USA, Tokyo, Dubai',
+                          prefixIcon: const Icon(Icons.flight_land, color: Color(0xFFA855F7)),
+                          filled: true,
+                          fillColor: inputBg,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Quick Preset Chips
+                Text('Popular Destinations & Hyper-Local Spots:',
+                    style: TextStyle(color: subtitleColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                _buildQuickDestinationChips(),
+                const SizedBox(height: 20),
+
+                // Budget Slider & Optimization Dropdown
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Max Budget Threshold:',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
+                              Text(
+                                '₹${_budget.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                                style: const TextStyle(
+                                  color: Color(0xFF10B981),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor: const Color(0xFF6366F1),
+                              thumbColor: const Color(0xFF6366F1),
+                              inactiveTrackColor: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
+                              overlayColor: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                            ),
+                            child: Slider(
+                              value: _budget,
+                              min: 1000,
+                              max: 100000,
+                              divisions: 99,
+                              onChanged: (v) => setState(() => _budget = v),
+                            ),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildBudgetPresetBtn(5000),
+                              _buildBudgetPresetBtn(15000),
+                              _buildBudgetPresetBtn(45000),
+                              _buildBudgetPresetBtn(75000),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedOptimizeBy,
+                        style: TextStyle(color: inputTextColor, fontWeight: FontWeight.bold),
+                        dropdownColor: inputBg,
+                        decoration: InputDecoration(
+                          labelText: 'AI Optimization Priority',
+                          labelStyle: TextStyle(color: labelTextColor),
+                          filled: true,
+                          fillColor: inputBg,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'best_value', child: Text('✨ Best Value (Hybrid)')),
+                          DropdownMenuItem(value: 'cheapest', child: Text('💰 Cheapest Fare')),
+                          DropdownMenuItem(value: 'fastest', child: Text('⚡ Fastest Non-Stop')),
+                          DropdownMenuItem(value: 'eco_friendly', child: Text('🌿 Eco Friendly (CO2)')),
+                          DropdownMenuItem(value: 'lowest_risk', child: Text('🛡️ Lowest Delay Risk')),
+                        ],
+                        onChanged: (v) => setState(() => _selectedOptimizeBy = v!),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Preferences Filter Chips
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    FilterChip(
+                      label: const Text('Non-Stop Flight Only'),
+                      selected: _nonStopOnly,
+                      backgroundColor: inputBg,
+                      selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                      checkmarkColor: const Color(0xFF6366F1),
+                      side: BorderSide(color: inputBorder),
+                      onSelected: (v) => setState(() => _nonStopOnly = v),
+                    ),
+                    FilterChip(
+                      label: const Text('Refundable Tickets Only'),
+                      selected: _refundableOnly,
+                      backgroundColor: inputBg,
+                      selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                      checkmarkColor: const Color(0xFF6366F1),
+                      side: BorderSide(color: inputBorder),
+                      onSelected: (v) => setState(() => _refundableOnly = v),
+                    ),
+                    FilterChip(
+                      label: const Text('Eco Rail & Green Bus First'),
+                      selected: _ecoFriendlyOnly,
+                      backgroundColor: inputBg,
+                      selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                      checkmarkColor: const Color(0xFF6366F1),
+                      side: BorderSide(color: inputBorder),
+                      onSelected: (v) => setState(() => _ecoFriendlyOnly = v),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Main Search Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _handleSearch,
+                    icon: const Icon(Icons.flight_takeoff, size: 20),
+                    label: const Text('Find Optimal Multi-Modal Routes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 6,
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
 
-          // Search Results Header
+          // Search Progress Indicator
           if (_isSearching)
-            const Center(child: CircularProgressIndicator())
-          else if (_searchResults.isEmpty)
             const Center(
               child: Padding(
-                padding: EdgeInsets.all(40),
-                child: Text('Click "Find Optimal Hybrid Routes" to search across flights, trains, buses, and cabs.'),
+                padding: EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(color: Color(0xFF6366F1)),
+                    SizedBox(height: 16),
+                    Text('Dijkstra Multi-Agent Engine scanning live flights, cabs, trains & metro...',
+                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+                  ],
+                ),
               ),
             )
+          else if (_searchResults.isEmpty)
+            _buildEmptySearchPlaceholder()
           else ...[
-            Text('Smart Recommendation Cards (${_searchResults.length})',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Text('AI Recommendation Cards', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: titleColor)),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_searchResults.length} Routes Analyzed',
+                    style: const TextStyle(color: Color(0xFF6366F1), fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 16),
             ..._searchResults.map((it) => _buildItineraryCard(it)),
           ],
@@ -938,13 +1348,161 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     );
   }
 
+  Widget _buildBudgetPresetBtn(double amount) {
+    final isSelected = _budget == amount;
+    final isDark = widget.isDarkMode;
+
+    final bg = isSelected
+        ? const Color(0xFF6366F1).withValues(alpha: 0.15)
+        : (isDark ? const Color(0xFF0D1017) : Colors.white);
+    final border = isSelected
+        ? const Color(0xFF6366F1)
+        : (isDark ? const Color(0xFF1E2433) : const Color(0xFFCBD5E1));
+    final textColor = isSelected
+        ? const Color(0xFF6366F1)
+        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569));
+
+    return InkWell(
+      onTap: () => setState(() => _budget = amount),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: bg,
+          border: Border.all(color: border),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          '₹${(amount / 1000).toInt()}k',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickDestinationChips() {
+    final isDark = widget.isDarkMode;
+    final destinations = [
+      {'label': '📍 PSIT Kanpur', 'origin': 'PSIT Kanpur', 'destination': 'Bangalore'},
+      {'label': '✈️ NYC, USA', 'origin': 'Kanpur', 'destination': 'USA'},
+      {'label': '🇬🇧 London, UK', 'origin': 'Delhi', 'destination': 'London'},
+      {'label': '🇯🇵 Tokyo, Japan', 'origin': 'Mumbai', 'destination': 'Tokyo'},
+      {'label': '🇸🇬 Singapore', 'origin': 'Bangalore', 'destination': 'Singapore'},
+      {'label': '🇦🇪 Dubai, UAE', 'origin': 'Delhi', 'destination': 'Dubai'},
+      {'label': '🏖️ Goa, India', 'origin': 'Mumbai', 'destination': 'Goa'},
+    ];
+
+    final bg = isDark ? const Color(0xFF1E2433) : const Color(0xFFEEF2FF);
+    final border = isDark ? const Color(0xFF374151) : const Color(0xFFC7D2FE);
+    final textColor = isDark ? Colors.white : const Color(0xFF4F46E5);
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: destinations.map((d) {
+        return InkWell(
+          onTap: () {
+            setState(() {
+              _originController.text = d['origin']!;
+              _destinationController.text = d['destination']!;
+            });
+            _handleSearch();
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: bg,
+              border: Border.all(color: border),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              d['label']!,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildEmptySearchPlaceholder() {
+    final isDark = widget.isDarkMode;
+    final cardBg = isDark ? const Color(0xFF111827) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(36),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.connecting_airports, size: 48, color: Color(0xFF6366F1)),
+          const SizedBox(height: 16),
+          Text(
+            'Explore Global & Local Routes',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Enter your origin (e.g., PSIT Kanpur, Delhi) and destination (e.g., Bangalore, USA, London) above to calculate multi-modal paths.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: isDark ? Colors.grey : const Color(0xFF64748B), fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildItineraryCard(Itinerary it) {
     final currency = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+    final isDark = widget.isDarkMode;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+    final cardBg = isDark ? const Color(0xFF111827) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0);
+    final legBg = isDark ? const Color(0xFF0D1017) : const Color(0xFFF1F5F9);
+    final legBorder = isDark ? const Color(0xFF1E2433) : const Color(0xFFCBD5E1);
+    final legTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final legSubtextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final durationBg = isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9);
+    final durationTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final aiExpBg = isDark ? const Color(0xFF6366F1).withValues(alpha: 0.1) : const Color(0xFFEEF2FF);
+    final aiExpBorder = isDark ? const Color(0xFF6366F1).withValues(alpha: 0.25) : const Color(0xFFC7D2FE);
+    final aiExpTextColor = isDark ? const Color(0xFFC084FC) : const Color(0xFF4F46E5);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: cardBorder),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -952,126 +1510,182 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     it.type.toUpperCase(),
-                    style: const TextStyle(color: Color(0xFF818CF8), fontWeight: FontWeight.bold, fontSize: 12),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5),
                   ),
                 ),
                 const Spacer(),
                 Text(
                   currency.format(it.totalPrice),
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 18),
 
             // Route Legs Visualizer
-            Row(
-              children: [
-                ...it.legs.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final leg = entry.value;
-                  return Expanded(
-                    child: Row(
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  ...it.legs.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final leg = entry.value;
+                    return Row(
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(leg.transportType, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            Text(leg.provider, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                          ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: legBg,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: legBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                leg.transportType == 'Flight'
+                                    ? Icons.flight
+                                    : (leg.transportType == 'Train'
+                                        ? Icons.train
+                                        : (leg.transportType == 'Metro'
+                                            ? Icons.subway
+                                            : Icons.directions_car)),
+                                color: const Color(0xFF6366F1),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    leg.transportType,
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: legTextColor),
+                                  ),
+                                  Text(
+                                    leg.provider,
+                                    style: TextStyle(color: legSubtextColor, fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                         if (idx < it.legs.length - 1)
                           const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
+                            padding: EdgeInsets.symmetric(horizontal: 10),
+                            child: Icon(Icons.arrow_forward, size: 16, color: Color(0xFF6366F1)),
                           ),
                       ],
-                    ),
-                  );
-                }),
-              ],
+                    );
+                  }),
+                ],
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 18),
 
             // Metrics Bar (Duration, CO2, Reliability, Delay)
             Wrap(
-              spacing: 16,
+              spacing: 12,
               runSpacing: 8,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.schedule, size: 16, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text('${it.totalDuration} hrs'),
-                  ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: durationBg,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: legBorder),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.schedule, size: 14, color: Color(0xFF6366F1)),
+                      const SizedBox(width: 6),
+                      Text('${it.totalDuration} hrs', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: durationTextColor)),
+                    ],
+                  ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.eco, size: 16, color: Colors.green),
-                    const SizedBox(width: 4),
-                    Text('${it.carbonFootprint} kg CO2'),
-                  ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.eco, size: 14, color: Color(0xFF10B981)),
+                      const SizedBox(width: 6),
+                      Text('${it.carbonFootprint} kg CO2', style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.verified, size: 16, color: Colors.blue),
-                    const SizedBox(width: 4),
-                    Text('Reliability: ${it.reliabilityScore}%'),
-                  ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.verified, size: 14, color: Colors.blueAccent),
+                      const SizedBox(width: 6),
+                      Text('Reliability: ${it.reliabilityScore}%', style: const TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
                 if (it.pricePrediction != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: it.pricePrediction!.indicator == 'Buy Now' ? Colors.green.withValues(alpha: 0.15) : Colors.orange.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '${it.pricePrediction!.indicator} (${it.pricePrediction!.confidence}% confident)',
                       style: TextStyle(
                         color: it.pricePrediction!.indicator == 'Buy Now' ? Colors.green : Colors.orange,
                         fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                        fontSize: 12,
                       ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
             // AI Explanation Rationale
             if (it.aiExplanation != null)
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10),
+                  color: aiExpBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: aiExpBorder),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.lightbulb_outline, color: Colors.blue, size: 18),
-                    const SizedBox(width: 8),
+                    Icon(Icons.auto_awesome, color: aiExpTextColor, size: 18),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         it.aiExplanation!,
-                        style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                        style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: aiExpTextColor, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
                 ),
               ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -1088,6 +1702,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF10B981),
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],

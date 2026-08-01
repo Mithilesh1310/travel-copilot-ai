@@ -99,6 +99,23 @@ def test_hyperlocal_psit_kanpur_search():
     # Check that first leg starts from PSIT Kanpur
     assert "Psit Kanpur" in data[0]["legs"][0]["origin"] or "PSIT Kanpur" in data[0]["legs"][0]["origin"]
 
+def test_global_usa_international_search():
+    payload = {
+        "origin": "Kanpur",
+        "destination": "USA",
+        "start_date": "2026-10-15",
+        "budget": 75000.0,
+        "preferences": {"optimize_by": "best_value"}
+    }
+    response = client.post("/api/search", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) > 0
+    # Ensure Flight is present and no long-haul intercity trains exist for travel to USA
+    transport_types = [leg["transport_type"] for leg in data[0]["legs"]]
+    assert "Train" not in transport_types
+    assert "Flight" in transport_types
+
 if __name__ == "__main__":
     test_root()
     test_search()
@@ -108,4 +125,5 @@ if __name__ == "__main__":
     test_auth_register_and_login()
     test_hotels_api()
     test_hyperlocal_psit_kanpur_search()
+    test_global_usa_international_search()
     print("ALL BACKEND AUDIT TESTS PASSED SUCCESSFULLY!")
