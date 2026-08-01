@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+from typing import List, Dict, Any
 import requests
 from dotenv import load_dotenv
 load_dotenv()
@@ -30,7 +31,11 @@ class LiveTravelAPIService:
             "jaipur": "JAI",
             "hyderabad": "HYD",
             "chennai": "MAA",
-            "kolkata": "CCU"
+            "kolkata": "CCU",
+            "pune": "PNQ",
+            "goa": "GOI",
+            "ahmedabad": "AMD",
+            "varanasi": "VNS"
         }
         for k, v in mapping.items():
             if k in city_lower:
