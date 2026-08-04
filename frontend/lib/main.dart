@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:latlong2/latlong.dart';
 import 'models/travel_models.dart';
+import 'models/explore_models.dart';
 import 'services/api_service.dart';
+import 'services/explore_api_service.dart';
+import 'widgets/explore_map_widget.dart';
+import 'widgets/explore_attraction_sheet.dart';
+import 'widgets/explore_emergency_sheet.dart';
 
 void main() {
   runApp(const AiTravelCopilotApp());
@@ -143,12 +149,132 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   bool _isLoadingBudgetReport = false;
   bool _isOptimizedApplied = false;
 
+  // Explore Mode state
+  final TextEditingController _exploreLocationController =
+      TextEditingController(text: 'Red Fort, Delhi');
+  double _exploreHours = 6.0;
+  double _exploreBudget = 2000.0;
+  List<String> _selectedExploreInterests = ['Historical', 'Food', 'Photography'];
+  List<ExploreMission> _exploreMissions = [];
+  ExploreItinerary? _exploreItinerary;
+  bool _isExploreLoading = false;
+  bool _showEmergencyOverlay = false;
+  List<EmergencyLocation> _emergencyFacilities = [];
+  LatLng _exploreMapCenter = const LatLng(28.6139, 77.2090);
+
   @override
   void initState() {
     super.initState();
     _loadInitialData();
     _initChat();
     _loadBudgetReport();
+    _loadExploreMissions();
+    _handlePlanExplore();
+  }
+
+  void _loadExploreMissions() async {
+    final missions = await ExploreApiService.fetchMissions();
+    if (mounted) {
+      setState(() {
+        _exploreMissions = missions;
+      });
+    }
+  }
+
+  void _handlePlanExplore([String? locationOverride]) async {
+    final location = locationOverride ?? _exploreLocationController.text.trim();
+    if (location.isEmpty) return;
+
+    setState(() => _isExploreLoading = true);
+
+    final localCoords = await ExploreApiService.resolveCityCoordinatesAsync(location);
+    if (mounted) {
+      setState(() {
+        _exploreMapCenter = localCoords;
+      });
+    }
+
+    final itinerary = await ExploreApiService.planSightseeing(
+      location: location,
+      availableHours: _exploreHours,
+      budget: _exploreBudget,
+      interests: _selectedExploreInterests,
+    );
+
+    if (mounted) {
+      setState(() {
+        _exploreItinerary = itinerary;
+        _isExploreLoading = false;
+        if (itinerary.stops.isNotEmpty) {
+          _exploreMapCenter = LatLng(itinerary.stops[0].lat, itinerary.stops[0].lng);
+        } else {
+          _exploreMapCenter = LatLng(itinerary.lat, itinerary.lng);
+        }
+      });
+    }
+  }
+
+  void _toggleEmergencyMode() async {
+    final newOverlayState = !_showEmergencyOverlay;
+    setState(() => _showEmergencyOverlay = newOverlayState);
+
+    if (newOverlayState && _emergencyFacilities.isEmpty) {
+      final facilities = await ExploreApiService.fetchEmergencyFacilities(
+        lat: _exploreMapCenter.latitude,
+        lng: _exploreMapCenter.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _emergencyFacilities = facilities;
+        });
+      }
+    }
+
+    if (newOverlayState && mounted) {
+      _showEmergencyModalSheet(context);
+    }
+  }
+
+  void _showEmergencyModalSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ExploreEmergencySheet(
+        facilities: _emergencyFacilities,
+        isDarkMode: widget.isDarkMode,
+      ),
+    );
+  }
+
+  void _showAttractionModalSheet(BuildContext context, AttractionStop stop) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ExploreAttractionSheet(
+        stop: stop,
+        isDarkMode: widget.isDarkMode,
+        onSkipStop: () {
+          Navigator.pop(ctx);
+          _handleSkipStop(stop);
+        },
+      ),
+    );
+  }
+
+  void _handleSkipStop(AttractionStop stop) {
+    if (_exploreItinerary != null) {
+      setState(() {
+        _exploreItinerary!.stops.removeWhere((s) => s.id == stop.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✨ Your itinerary has been intelligently optimized.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _loadInitialData() async {
@@ -439,6 +565,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                   _buildLinearSidebarItem(4, Icons.map_rounded, Icons.map_outlined, 'Itinerary Hub'),
                   _buildLinearSidebarItem(5, Icons.notifications_active_rounded, Icons.notifications_active_outlined, 'Real-Time Alerts'),
                   _buildLinearSidebarItem(6, Icons.insights_rounded, Icons.analytics_outlined, 'Analytics & CO2'),
+                  _buildLinearSidebarItem(7, Icons.explore_rounded, Icons.explore_outlined, '✨ Explore with AI'),
                 ],
               ),
             ),
@@ -463,6 +590,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Itinerary'),
                 BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Alerts'),
                 BottomNavigationBarItem(icon: Icon(Icons.analytics), label: 'Analytics'),
+                BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
               ],
             ),
     );
@@ -530,6 +658,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
         return _buildNotificationsTab();
       case 6:
         return _buildAnalyticsTab();
+      case 7:
+        return _buildExploreTab();
       default:
         return _buildHomeTab();
     }
@@ -607,13 +737,26 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       Row(
                         children: [
                           ElevatedButton.icon(
+                            onPressed: () => setState(() => _selectedIndex = 7),
+                            icon: const Icon(Icons.explore, size: 18),
+                            label: const Text('✨ Explore with AI', style: TextStyle(fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 8,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          ElevatedButton.icon(
                             onPressed: () => setState(() => _selectedIndex = 1),
                             icon: const Icon(Icons.auto_awesome, size: 18),
                             label: const Text('Launch AI Chat', style: TextStyle(fontWeight: FontWeight.bold)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: const Color(0xFF4F46E5),
-                              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               elevation: 8,
                             ),
@@ -940,52 +1083,259 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     );
   }
 
+  Widget _buildFormattedMessageContent(String text, bool isBot, bool isDark) {
+    if (!isBot) {
+      return Text(
+        text,
+        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500, height: 1.4),
+      );
+    }
+
+    final lines = text.split('\n');
+    List<Widget> children = [];
+
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+      if (line.isEmpty) continue;
+
+      if (line.contains('📍') || line.contains('Breakdown')) {
+        final cleanTitle = line.replaceAll('**', '').replaceAll('📍', '').trim();
+        children.add(const SizedBox(height: 10));
+        children.add(
+          Row(
+            children: [
+              const Icon(Icons.location_on, size: 16, color: Color(0xFFF59E0B)),
+              const SizedBox(width: 6),
+              Text(
+                cleanTitle,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
+                ),
+              ),
+            ],
+          ),
+        );
+        children.add(const SizedBox(height: 6));
+      } else if (line.contains('✈️') || line.contains('🌐') || line.contains('Guidance')) {
+        final cleanTitle = line.replaceAll('**', '').replaceAll('✈️', '').replaceAll('🌐', '').trim();
+        children.add(const SizedBox(height: 10));
+        children.add(
+          Row(
+            children: [
+              const Icon(Icons.flight_takeoff, size: 16, color: Color(0xFF3B82F6)),
+              const SizedBox(width: 6),
+              Text(
+                cleanTitle,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                ),
+              ),
+            ],
+          ),
+        );
+        children.add(const SizedBox(height: 6));
+      } else if (line.startsWith('•') || line.startsWith('-')) {
+        final cleanBullet = line.replaceFirst(RegExp(r'^[•\-]\s*'), '').replaceAll('**', '').trim();
+        children.add(
+          Padding(
+            padding: const EdgeInsets.only(left: 6, bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 6, right: 8),
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF6366F1),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    cleanBullet,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.4,
+                      color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else if (line.contains('Rationale:') || line.contains('Rationale')) {
+        final cleanRat = line.replaceAll('*', '').replaceFirst('AI Recommendation Rationale:', '').trim();
+        children.add(const SizedBox(height: 10));
+        children.add(
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF10B981)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'AI Recommendation Rationale: ',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 12),
+                        ),
+                        TextSpan(
+                          text: cleanRat,
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            fontSize: 12,
+                            color: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF475569),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else {
+        final cleanLine = line.replaceAll('**', '').replaceAll('*', '').trim();
+        children.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              cleanLine,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
+  }
+
   Widget _buildChatMessageWidget(ChatMessage msg) {
+    final isDark = widget.isDarkMode;
+
+    final botBg = isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF8FAFC);
+    final botBorder = isDark ? const Color(0xFF313244) : const Color(0xFFE2E8F0);
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 22),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: msg.isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
         children: [
           if (msg.isBot)
-            const CircleAvatar(
-              backgroundColor: Color(0xFF6366F1),
-              radius: 18,
-              child: Icon(Icons.smart_toy, color: Colors.white, size: 18),
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                ),
+              ),
+              child: const CircleAvatar(
+                backgroundColor: Color(0xFF111827),
+                radius: 18,
+                child: Icon(Icons.auto_awesome, color: Color(0xFFC084FC), size: 18),
+              ),
             ),
-          if (msg.isBot) const SizedBox(width: 12),
+          if (msg.isBot) const SizedBox(width: 14),
           Flexible(
             child: Column(
               crossAxisAlignment: msg.isBot ? CrossAxisAlignment.start : CrossAxisAlignment.end,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: msg.isBot
-                        ? (widget.isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0))
-                        : const Color(0xFF6366F1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    msg.text,
-                    style: TextStyle(
-                      color: msg.isBot ? null : Colors.white,
-                      fontSize: 14,
+                if (msg.isBot) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6, left: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Travel Copilot AI',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF818CF8)),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            children: [
+                              CircleAvatar(backgroundColor: Color(0xFF10B981), radius: 3),
+                              SizedBox(width: 4),
+                              Text('AI GRAPH ROUTER', style: TextStyle(color: Color(0xFF10B981), fontSize: 9, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                ],
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: msg.isBot ? botBg : null,
+                    gradient: msg.isBot
+                        ? null
+                        : const LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(20),
+                      topRight: const Radius.circular(20),
+                      bottomLeft: msg.isBot ? const Radius.circular(4) : const Radius.circular(20),
+                      bottomRight: msg.isBot ? const Radius.circular(20) : const Radius.circular(4),
+                    ),
+                    border: msg.isBot ? Border.all(color: botBorder) : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: msg.isBot ? Colors.black.withValues(alpha: 0.06) : const Color(0xFF6366F1).withValues(alpha: 0.2),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: _buildFormattedMessageContent(msg.text, msg.isBot, isDark),
                 ),
                 if (msg.itineraries.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   ...msg.itineraries.map((it) => _buildItineraryCard(it)),
                 ],
                 if (msg.followUps.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
-                    runSpacing: 4,
+                    runSpacing: 6,
                     children: msg.followUps
                         .map((f) => ActionChip(
-                              label: Text(f, style: const TextStyle(fontSize: 12)),
+                              backgroundColor: isDark ? const Color(0xFF1E2433) : const Color(0xFFEEF2FF),
+                              side: BorderSide(color: isDark ? const Color(0xFF374151) : const Color(0xFFC7D2FE)),
+                              label: Text(f, style: TextStyle(fontSize: 12, color: isDark ? Colors.white : const Color(0xFF4F46E5), fontWeight: FontWeight.w600)),
                               onPressed: () => _handleSendChatMessage(f),
                             ))
                         .toList(),
@@ -994,12 +1344,21 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
               ],
             ),
           ),
-          if (!msg.isBot) const SizedBox(width: 12),
+          if (!msg.isBot) const SizedBox(width: 14),
           if (!msg.isBot)
-            const CircleAvatar(
-              backgroundColor: Colors.grey,
-              radius: 18,
-              child: Icon(Icons.person, color: Colors.white, size: 18),
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                ),
+              ),
+              child: const CircleAvatar(
+                backgroundColor: Color(0xFF111827),
+                radius: 18,
+                child: Icon(Icons.person, color: Colors.white, size: 18),
+              ),
             ),
         ],
       ),
@@ -3681,6 +4040,591 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // TAB 7: AI SMART EXPLORE MODE
+  Widget _buildExploreTab() {
+    final isDark = widget.isDarkMode;
+    final currencyFormat = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+
+    final heroGradient = isDark
+        ? const LinearGradient(
+            colors: [Color(0xFF1E1B4B), Color(0xFF312E81), Color(0xFF4F46E5)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : const LinearGradient(
+            colors: [Color(0xFFEEF2FF), Color(0xFFF5F3FF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+
+    final heroBorder = isDark ? const Color(0xFF374151) : const Color(0xFFC7D2FE);
+    final titleColor = isDark ? Colors.white : const Color(0xFF1E1B4B);
+    final subtitleColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
+    final inputBg = isDark ? const Color(0xFF0D1017) : Colors.white;
+    final inputBorder = isDark ? const Color(0xFF1E2433) : const Color(0xFFCBD5E1);
+    final cardBg = isDark ? const Color(0xFF111827) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF1F2937) : const Color(0xFFE2E8F0);
+
+    final allInterests = [
+      'Historical', 'Food', 'Shopping', 'Nature', 'Museums',
+      'Adventure', 'Religious', 'Nightlife', 'Photography',
+      'Hidden Gems', 'Luxury', 'Budget', 'Family', 'Couple', 'Solo'
+    ];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(28.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Hero Banner
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              gradient: heroGradient,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: heroBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark ? const Color(0xFF6366F1).withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 30,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.auto_awesome, color: Colors.amber, size: 16),
+                            SizedBox(width: 6),
+                            Text(
+                              'AI Smart Explore Mode v2.0',
+                              style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Intelligent Sightseeing & Interactive Navigation',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          height: 1.2,
+                          color: titleColor,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Once arrived, AI dynamically plans, explains, navigates, and optimizes your complete sightseeing experience with real interactive maps, AI reasoning, voice guides & emergency SOS mode.',
+                        style: TextStyle(color: subtitleColor, fontSize: 14, height: 1.5),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => _handlePlanExplore(),
+                            icon: const Icon(Icons.navigation, size: 18),
+                            label: const Text('✨ Start AI Sightseeing', style: TextStyle(fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6366F1),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 6,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          OutlinedButton.icon(
+                            onPressed: _toggleEmergencyMode,
+                            icon: const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 18),
+                            label: const Text('🚨 Emergency SOS Mode', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // API Credentials Warning Banner (if missing credentials)
+          if (_exploreItinerary != null && _exploreItinerary!.waitingForApiCredentials) ...[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lock_clock, color: Colors.amber, size: 28),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Waiting for API Credentials.',
+                          style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _exploreItinerary!.apiCredentialsMessage ??
+                              'Provide external API keys (GOOGLE_MAPS_API_KEY, TRIPADVISOR_API_KEY, OPENWEATHER_API_KEY, ELEVENLABS_API_KEY) in environment variables to enable real-time external API fetching.',
+                          style: TextStyle(color: titleColor, fontSize: 13, height: 1.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 28),
+          ],
+
+          // Controls & Inputs Card
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: cardBorder),
+              boxShadow: [
+                if (!isDark)
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Customize Your Sightseeing Preferences', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: titleColor)),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: TextField(
+                        controller: _exploreLocationController,
+                        style: TextStyle(fontWeight: FontWeight.w600, color: titleColor),
+                        onSubmitted: (val) => _handlePlanExplore(),
+                        decoration: InputDecoration(
+                          labelText: 'Destination / Current Location',
+                          hintText: 'e.g., Red Fort Delhi, PSIT Kanpur, London, Paris',
+                          prefixIcon: const Icon(Icons.pin_drop, color: Color(0xFF6366F1)),
+                          filled: true,
+                          fillColor: inputBg,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: inputBorder)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _exploreLocationController.text = 'Live GPS: Red Fort, Delhi';
+                          _exploreMapCenter = const LatLng(28.6562, 77.2410);
+                        });
+                        _handlePlanExplore();
+                      },
+                      icon: const Icon(Icons.my_location, size: 18),
+                      label: const Text('Live GPS'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Hours & Budget Sliders
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Available Time:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
+                              Text('${_exploreHours.toStringAsFixed(1)} Hours', style: const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          Slider(
+                            value: _exploreHours,
+                            min: 1.0,
+                            max: 12.0,
+                            divisions: 22,
+                            activeColor: const Color(0xFF6366F1),
+                            onChanged: (v) => setState(() => _exploreHours = v),
+                            onChangeEnd: (v) => _handlePlanExplore(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Sightseeing Budget:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
+                              Text(currencyFormat.format(_exploreBudget), style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          Slider(
+                            value: _exploreBudget,
+                            min: 500.0,
+                            max: 20000.0,
+                            divisions: 39,
+                            activeColor: const Color(0xFF10B981),
+                            onChanged: (v) => setState(() => _exploreBudget = v),
+                            onChangeEnd: (v) => _handlePlanExplore(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Interest Chips
+                Text('Select Traveler Interests & Themes:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: allInterests.map((interest) {
+                    final isSelected = _selectedExploreInterests.contains(interest);
+                    return FilterChip(
+                      label: Text(interest),
+                      selected: isSelected,
+                      backgroundColor: inputBg,
+                      selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                      checkmarkColor: const Color(0xFF6366F1),
+                      side: BorderSide(color: inputBorder),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedExploreInterests.add(interest);
+                          } else {
+                            _selectedExploreInterests.remove(interest);
+                          }
+                        });
+                        _handlePlanExplore();
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _handlePlanExplore(),
+                    icon: const Icon(Icons.auto_awesome, size: 20),
+                    label: const Text('🚀 Calculate AI Sightseeing Path', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 6,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // 12 Explore Mission Trails Bar
+          Row(
+            children: [
+              const Icon(Icons.explore, color: Color(0xFF8B5CF6), size: 22),
+              const SizedBox(width: 10),
+              Text(
+                '1-Click Sightseeing Mission Trails',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: titleColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _exploreMissions.map((m) {
+                return Container(
+                  margin: const EdgeInsets.only(right: 12),
+                  child: ActionChip(
+                    avatar: const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF6366F1)),
+                    label: Text(m.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    backgroundColor: inputBg,
+                    side: BorderSide(color: inputBorder),
+                    onPressed: () {
+                      final currentText = _exploreLocationController.text.trim();
+                      final cityOnly = currentText.contains('(')
+                          ? currentText.split('(').last.replaceAll(')', '').trim()
+                          : (currentText.isEmpty ? 'Mumbai' : currentText);
+                      
+                      _exploreLocationController.text = '${m.title} ($cityOnly)';
+                      if (!_selectedExploreInterests.contains(m.trailCategory)) {
+                        setState(() {
+                          _selectedExploreInterests.add(m.trailCategory);
+                        });
+                      }
+                      _handlePlanExplore(cityOnly);
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // REAL INTERACTIVE MAP
+          Row(
+            children: [
+              const Icon(Icons.map_rounded, color: Color(0xFF6366F1), size: 22),
+              const SizedBox(width: 10),
+              Text(
+                'Real Interactive Sightseeing Map',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: titleColor),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('OpenStreetMap Tiles Live', style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            height: 400,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: cardBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: ExploreMapWidget(
+                initialCenter: _exploreMapCenter,
+                stops: _exploreItinerary?.stops ?? [],
+                emergencyFacilities: _emergencyFacilities,
+                showEmergencyOverlay: _showEmergencyOverlay,
+                onStopTap: (stop) => _showAttractionModalSheet(context, stop),
+                onEmergencyTap: (em) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('📞 Calling ${em.name} (${em.phone})')),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // Sightseeing Timeline & Recommendations
+          if (_isExploreLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(color: Color(0xFF6366F1)),
+                    SizedBox(height: 16),
+                    Text('AI Route Engine calculating sightseeing path & opening hours...', style: TextStyle(fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+            )
+          else if (_exploreItinerary != null && _exploreItinerary!.stops.isNotEmpty) ...[
+            Row(
+              children: [
+                const Icon(Icons.format_list_bulleted, color: Color(0xFF10B981), size: 22),
+                const SizedBox(width: 10),
+                Text(
+                  'Optimized Sightseeing Timeline',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: titleColor),
+                ),
+                const Spacer(),
+                Text(
+                  'Budget: ${currencyFormat.format(_exploreItinerary!.totalCost)} / ${currencyFormat.format(_exploreBudget)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            ..._exploreItinerary!.stops.asMap().entries.map((entry) {
+              final idx = entry.key + 1;
+              final stop = entry.value;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: cardBorder),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: const Color(0xFF6366F1),
+                          radius: 14,
+                          child: Text('$idx', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(stop.scheduledTime, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6366F1), fontSize: 13)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            stop.name,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: titleColor),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.info_outline, color: Color(0xFF6366F1)),
+                          onPressed: () => _showAttractionModalSheet(context, stop),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.auto_awesome, color: Color(0xFF6366F1), size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              stop.aiReasoning,
+                              style: TextStyle(fontSize: 12, color: titleColor, fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Text('⏱️ Visit: ${stop.visitDurationMins} mins', style: TextStyle(color: subtitleColor, fontSize: 12)),
+                        const SizedBox(width: 16),
+                        Text('💰 Cost: ₹${stop.estimatedCost.toInt()}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 12)),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: () => _handleSkipStop(stop),
+                          icon: const Icon(Icons.close, size: 14, color: Colors.grey),
+                          label: const Text('Skip', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ] else ...[
+            // Fallback Timeline Block (Never Blank)
+            Row(
+              children: [
+                const Icon(Icons.format_list_bulleted, color: Color(0xFF10B981), size: 22),
+                const SizedBox(width: 10),
+                Text(
+                  'Optimized Sightseeing Timeline',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: titleColor),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: cardBorder),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.travel_explore, size: 48, color: Color(0xFF6366F1)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Ready to Explore ${_exploreLocationController.text}?',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: titleColor),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Click below to calculate your time-blocked route, opening hours, AI reasoning, and photography tips.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: subtitleColor, fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () => _handlePlanExplore(),
+                    icon: const Icon(Icons.auto_awesome, size: 18),
+                    label: const Text('🚀 Calculate AI Sightseeing Path', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

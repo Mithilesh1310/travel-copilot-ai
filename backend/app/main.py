@@ -1,15 +1,21 @@
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import routes, auth
+from .routers import routes, auth, explore
 
 # Initialize SQLite tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="AI Travel Copilot API", 
-    description="Multi-agent travel routing, pricing, and delay forecasting engine.",
-    version="1.0.0"
+    description="Multi-agent travel routing, pricing, delay forecasting, and AI Smart Explore engine.",
+    version="2.0.0"
 )
 
 # Configure CORS Middleware for cross-origin Flutter Web calls
@@ -23,6 +29,7 @@ app.add_middleware(
 
 app.include_router(routes.router, prefix="/api")
 app.include_router(auth.router)
+app.include_router(explore.router)
 
 @app.get("/")
 def read_root():

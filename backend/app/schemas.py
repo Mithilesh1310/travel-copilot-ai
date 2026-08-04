@@ -224,3 +224,93 @@ class AnalyticsResponse(BaseModel):
     trips_completed: int
     monthly_spending: List[Dict[str, Any]]
 
+
+# AI Smart Explore Mode Schemas
+class ExploreRequest(BaseModel):
+    location: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    travel_dates: Optional[str] = None
+    available_hours: Optional[float] = 6.0
+    available_days: Optional[int] = 1
+    budget: Optional[float] = 2000.0
+    interests: List[str] = []
+    preferences: Optional[Dict[str, Any]] = None
+
+class ReplanRequest(BaseModel):
+    current_itinerary: Dict[str, Any]
+    skipped_stops: List[str] = []
+    added_stops: List[str] = []
+    updated_budget: Optional[float] = None
+    updated_hours: Optional[float] = None
+    updated_preferences: Optional[Dict[str, Any]] = None
+
+class AttractionStop(BaseModel):
+    id: str
+    name: str
+    category: str
+    lat: float
+    lng: float
+    address: str
+    visit_duration_mins: int
+    estimated_cost: float
+    travel_time_from_prev_mins: int
+    travel_mode_from_prev: str
+    scheduled_time: str
+    ai_reasoning: str
+    ai_score: int
+    image_url: str
+    description: str
+    history_summary: str
+    facts: List[str] = []
+    architecture: str
+    cultural_importance: str
+    entry_fee: str
+    opening_hours: str
+    best_visiting_time: str
+    photo_tips: str
+    safety_tips: str
+    accessibility: str
+    nearby_amenities: Dict[str, Any] = {}
+    spending_estimate: Dict[str, float] = {}
+
+class EmergencyLocation(BaseModel):
+    id: str
+    name: str
+    category: str
+    lat: float
+    lng: float
+    address: str
+    phone: str
+    distance_km: float
+    open_24h: bool = True
+
+class ExploreMission(BaseModel):
+    id: str
+    title: str
+    icon: str
+    description: str
+    trail_category: str
+    estimated_hours: float
+    estimated_cost: float
+    recommended_stops_count: int
+
+class ExploreItineraryResponse(BaseModel):
+    location: str
+    lat: float = 28.6139
+    lng: float = 77.2090
+    total_stops: int
+    total_hours: float
+    total_cost: float
+    remaining_budget: float
+    stops: List[AttractionStop]
+    time_blocked_schedule: List[Dict[str, Any]]
+    multi_transport_mix: List[str]
+    hidden_gems: List[AttractionStop]
+    photo_spots: List[Dict[str, Any]]
+    food_recommendations: List[Dict[str, Any]]
+    shopping_recommendations: List[Dict[str, Any]]
+    waiting_for_api_credentials: bool = False
+    api_credentials_message: Optional[str] = None
+
+

@@ -1,0 +1,21 @@
+# Environment variables & API keys
+.env
+backend/.env
+*.env
+
+# Python bytecode & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+backend/.venv/
+*.db
+*.sqlite3
+
+# Temporary test scripts
+backend/test_pois.py
+
+# Flutter web builds & tools
+frontend/.dart_tool/
+frontend/.pub/
+frontend/build/

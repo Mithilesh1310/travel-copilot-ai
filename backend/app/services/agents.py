@@ -139,29 +139,101 @@ class PlannerAgent:
                     pass
 
         # Heuristic Rule-Based Intent Extraction
+        INVALID_CITY_WORDS = {
+            "want", "go", "to", "from", "for", "with", "flight", "flights", "train", "trains",
+            "bus", "buses", "cab", "cabs", "taxi", "route", "routes", "travel", "ticket",
+            "cheap", "cheapest", "fast", "fastest", "best", "eco", "green", "time", "enough",
+            "just", "have", "need", "please", "find", "show", "get", "reach", "visit", "trip",
+            "search", "book", "buy", "check", "i", "you", "he", "she", "it", "we", "they", "me",
+            "my", "our", "a", "an", "the", "under", "below", "above", "rs", "inr", "budget", "day"
+        }
+
+        CITY_ALIASES = {
+            "kanpur": "Kanpur",
+            "banglore": "Bangalore",
+            "bangalore": "Bangalore",
+            "bengaluru": "Bangalore",
+            "delhi": "Delhi",
+            "new delhi": "Delhi",
+            "mumbai": "Mumbai",
+            "bombay": "Mumbai",
+            "london": "London",
+            "paris": "Paris",
+            "new york": "New York",
+            "nyc": "New York",
+            "tokyo": "Tokyo",
+            "dubai": "Dubai",
+            "singapore": "Singapore",
+            "jaipur": "Jaipur",
+            "goa": "Goa",
+            "agra": "Agra",
+            "varanasi": "Varanasi",
+            "banaras": "Varanasi",
+            "lucknow": "Lucknow",
+            "kolkata": "Kolkata",
+            "calcutta": "Kolkata",
+            "chennai": "Chennai",
+            "hyderabad": "Hyderabad",
+            "pune": "Pune",
+            "ahmedabad": "Ahmedabad",
+        }
+
+        found_cities_in_order = []
+        for token in words:
+            for city_key, clean_city in CITY_ALIASES.items():
+                if token == city_key or city_key in token:
+                    if not found_cities_in_order or found_cities_in_order[-1] != clean_city:
+                        found_cities_in_order.append(clean_city)
+
         origin = None
         destination = None
-        
+
         if "from" in words:
             try:
                 from_idx = words.index("from")
-                origin = words[from_idx + 1].title()
-                if "to" in words[from_idx:]:
-                    to_idx = words.index("to", from_idx)
-                    destination = words[to_idx + 1].title()
+                for i in range(from_idx + 1, min(from_idx + 4, len(words))):
+                    w = words[i].lower()
+                    if w not in INVALID_CITY_WORDS and len(w) >= 3:
+                        origin = CITY_ALIASES.get(w, words[i].title())
+                        break
             except Exception:
                 pass
-        
-        if not origin or not destination:
-            if "to" in words:
-                try:
-                    to_idx = words.index("to")
-                    if to_idx > 0:
-                        origin = words[to_idx - 1].title()
+
+        if "to" in words:
+            try:
+                for to_idx in [idx for idx, w in enumerate(words) if w == "to"]:
                     if to_idx < len(words) - 1:
-                        destination = words[to_idx + 1].title()
-                except Exception:
-                    pass
+                        next_word = words[to_idx + 1].lower()
+                        if next_word in ["go", "travel", "fly", "visit", "reach"]:
+                            if to_idx + 2 < len(words):
+                                target_word = words[to_idx + 2].lower()
+                                if target_word not in INVALID_CITY_WORDS and len(target_word) >= 3:
+                                    destination = CITY_ALIASES.get(target_word, words[to_idx + 2].title())
+                        elif next_word not in INVALID_CITY_WORDS and len(next_word) >= 3:
+                            destination = CITY_ALIASES.get(next_word, words[to_idx + 1].title())
+            except Exception:
+                pass
+
+        if not origin and len(found_cities_in_order) >= 1:
+            if "from" in msg_lower:
+                for c in found_cities_in_order:
+                    if f"from {c.lower()}" in msg_lower or f"from {c.lower()[:4]}" in msg_lower:
+                        origin = c
+                        break
+            if not origin:
+                origin = found_cities_in_order[0]
+
+        if not destination and len(found_cities_in_order) >= 1:
+            for c in found_cities_in_order:
+                if c != origin:
+                    destination = c
+                    break
+
+        # Safety check: Origin and Destination can NEVER be stop words
+        if origin and origin.lower() in INVALID_CITY_WORDS:
+            origin = None
+        if destination and destination.lower() in INVALID_CITY_WORDS:
+            destination = None
 
         budget = None
         for arg in ["budget", "rs", "₹", "inr"]:
