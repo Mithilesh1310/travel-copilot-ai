@@ -387,10 +387,12 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     final inputSearchBg = isDark ? const Color(0xFF141722) : const Color(0xFFF1F5F9);
     final inputSearchBorder = isDark ? const Color(0xFF222736) : const Color(0xFFCBD5E1);
 
+    final isMobileScreen = MediaQuery.of(context).size.width < 700;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: appBarBg,
-        titleSpacing: 24,
+        titleSpacing: isMobileScreen ? 12 : 24,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Row(
@@ -411,32 +413,36 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
               ),
               child: const Icon(Icons.bolt, color: Colors.white, size: 18),
             ),
-            const SizedBox(width: 12),
-            Text(
-              'TRAVEL COPILOT',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
-                letterSpacing: 1.2,
-                color: titleTextColor,
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                'TRAVEL COPILOT',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: isMobileScreen ? 14 : 16,
+                  letterSpacing: 1.0,
+                  color: titleTextColor,
+                ),
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+            if (!isMobileScreen) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                ),
+                child: const Text(
+                  'AI v2.0 LIVE',
+                  style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
               ),
-              child: const Text(
-                'AI v2.0 LIVE',
-                style: TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-              ),
-            ),
+            ],
             if (isDesktop) ...[
               const Spacer(),
-              // Notion/Linear Keyboard Shortcut Search Bar Style
               InkWell(
                 onTap: () => setState(() => _selectedIndex = 2),
                 borderRadius: BorderRadius.circular(20),
@@ -516,12 +522,12 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 ),
             ],
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           InkWell(
             onTap: () => _showAuthModal(context),
             borderRadius: BorderRadius.circular(20),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: EdgeInsets.symmetric(horizontal: isMobileScreen ? 6 : 10, vertical: 5),
               decoration: BoxDecoration(
                 color: inputSearchBg,
                 borderRadius: BorderRadius.circular(20),
@@ -537,13 +543,15 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(_isLoggedIn ? _userName : 'Sign In', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: titleTextColor)),
+                  if (!isMobileScreen) ...[
+                    const SizedBox(width: 8),
+                    Text(_isLoggedIn ? _userName : 'Sign In', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: titleTextColor)),
+                  ],
                 ],
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
         ],
       ),
       body: Row(
@@ -1368,6 +1376,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   // TAB 2: UNIVERSAL SEARCH & RESULTS
   Widget _buildSearchTab() {
     final isDark = widget.isDarkMode;
+    final isMobile = MediaQuery.of(context).size.width < 700;
 
     final heroGradient = isDark
         ? const LinearGradient(
@@ -1390,13 +1399,13 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     final labelTextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 14 : 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Minimalist Hero Search Box
           Container(
-            padding: const EdgeInsets.all(28),
+            padding: EdgeInsets.all(isMobile ? 18 : 28),
             decoration: BoxDecoration(
               gradient: heroGradient,
               borderRadius: BorderRadius.circular(24),
@@ -1425,94 +1434,149 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       child: const Icon(Icons.explore, color: Colors.white, size: 22),
                     ),
                     const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Universal Multi-Modal Route Finder',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: titleColor,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Universal Multi-Modal Route Finder',
+                            style: TextStyle(
+                              fontSize: isMobile ? 17 : 20,
+                              fontWeight: FontWeight.bold,
+                              color: titleColor,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Search global & hyper-local routes across Flights, Rail, Metro, Cabs & Buses',
-                          style: TextStyle(color: subtitleColor, fontSize: 13),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(
+                            'Search global & hyper-local routes across Flights, Rail, Metro, Cabs & Buses',
+                            style: TextStyle(color: subtitleColor, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Origin and Destination Row with Swap Button
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _originController,
-                        style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
-                        decoration: InputDecoration(
-                          labelText: 'Origin Location / City',
-                          labelStyle: TextStyle(color: labelTextColor),
-                          hintText: 'e.g., PSIT Kanpur, Delhi, London',
-                          prefixIcon: const Icon(Icons.my_location, color: Color(0xFF6366F1)),
-                          filled: true,
-                          fillColor: inputBg,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: inputBorder),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: inputBorder),
+                if (isMobile) ...[
+                  TextField(
+                    controller: _originController,
+                    style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                    decoration: InputDecoration(
+                      labelText: 'Origin Location / City',
+                      labelStyle: TextStyle(color: labelTextColor),
+                      hintText: 'e.g., PSIT Kanpur, Delhi',
+                      prefixIcon: const Icon(Icons.my_location, color: Color(0xFF6366F1)),
+                      filled: true,
+                      fillColor: inputBg,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: inputBorder),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: IconButton.filled(
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                        foregroundColor: const Color(0xFF6366F1),
+                      ),
+                      icon: const Icon(Icons.swap_vert, size: 20),
+                      onPressed: () {
+                        final temp = _originController.text;
+                        setState(() {
+                          _originController.text = _destinationController.text;
+                          _destinationController.text = temp;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _destinationController,
+                    style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                    decoration: InputDecoration(
+                      labelText: 'Destination Location / Country',
+                      labelStyle: TextStyle(color: labelTextColor),
+                      hintText: 'e.g., Bangalore, USA, Tokyo',
+                      prefixIcon: const Icon(Icons.flight_land, color: Color(0xFFA855F7)),
+                      filled: true,
+                      fillColor: inputBg,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: inputBorder),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _originController,
+                          style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                          decoration: InputDecoration(
+                            labelText: 'Origin Location / City',
+                            labelStyle: TextStyle(color: labelTextColor),
+                            hintText: 'e.g., PSIT Kanpur, Delhi, London',
+                            prefixIcon: const Icon(Icons.my_location, color: Color(0xFF6366F1)),
+                            filled: true,
+                            fillColor: inputBg,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: inputBorder),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: inputBorder),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: IconButton.filled(
-                        style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                          foregroundColor: const Color(0xFF6366F1),
-                        ),
-                        icon: const Icon(Icons.swap_horiz, size: 22),
-                        onPressed: () {
-                          final temp = _originController.text;
-                          setState(() {
-                            _originController.text = _destinationController.text;
-                            _destinationController.text = temp;
-                          });
-                        },
-                      ),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _destinationController,
-                        style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
-                        decoration: InputDecoration(
-                          labelText: 'Destination Location / Country',
-                          labelStyle: TextStyle(color: labelTextColor),
-                          hintText: 'e.g., Bangalore, USA, Tokyo, Dubai',
-                          prefixIcon: const Icon(Icons.flight_land, color: Color(0xFFA855F7)),
-                          filled: true,
-                          fillColor: inputBg,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: inputBorder),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: IconButton.filled(
+                          style: IconButton.styleFrom(
+                            backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                            foregroundColor: const Color(0xFF6366F1),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: inputBorder),
-                          ),
+                          icon: const Icon(Icons.swap_horiz, size: 22),
+                          onPressed: () {
+                            final temp = _originController.text;
+                            setState(() {
+                              _originController.text = _destinationController.text;
+                              _destinationController.text = temp;
+                            });
+                          },
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                      Expanded(
+                        child: TextField(
+                          controller: _destinationController,
+                          style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                          decoration: InputDecoration(
+                            labelText: 'Destination Location / Country',
+                            labelStyle: TextStyle(color: labelTextColor),
+                            hintText: 'e.g., Bangalore, USA, Tokyo, Dubai',
+                            prefixIcon: const Icon(Icons.flight_land, color: Color(0xFFA855F7)),
+                            filled: true,
+                            fillColor: inputBg,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: inputBorder),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: inputBorder),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 14),
 
                 // Quick Preset Chips
@@ -1523,88 +1587,159 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 const SizedBox(height: 20),
 
                 // Budget Slider & Optimization Dropdown
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                if (isMobile) ...[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Max Budget Threshold:',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
-                              Text(
-                                '₹${_budget.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
-                                style: const TextStyle(
-                                  color: Color(0xFF10B981),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SliderTheme(
-                            data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: const Color(0xFF6366F1),
-                              thumbColor: const Color(0xFF6366F1),
-                              inactiveTrackColor: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
-                              overlayColor: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                          Text('Max Budget Threshold:',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
+                          Text(
+                            '₹${_budget.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                            style: const TextStyle(
+                              color: Color(0xFF10B981),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
-                            child: Slider(
-                              value: _budget,
-                              min: 1000,
-                              max: 100000,
-                              divisions: 99,
-                              onChanged: (v) => setState(() => _budget = v),
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildBudgetPresetBtn(5000),
-                              _buildBudgetPresetBtn(15000),
-                              _buildBudgetPresetBtn(45000),
-                              _buildBudgetPresetBtn(75000),
-                            ],
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      flex: 2,
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedOptimizeBy,
-                        style: TextStyle(color: inputTextColor, fontWeight: FontWeight.bold),
-                        dropdownColor: inputBg,
-                        decoration: InputDecoration(
-                          labelText: 'AI Optimization Priority',
-                          labelStyle: TextStyle(color: labelTextColor),
-                          filled: true,
-                          fillColor: inputBg,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: inputBorder),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: inputBorder),
-                          ),
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor: const Color(0xFF6366F1),
+                          thumbColor: const Color(0xFF6366F1),
+                          inactiveTrackColor: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
+                          overlayColor: const Color(0xFF6366F1).withValues(alpha: 0.2),
                         ),
-                        items: const [
-                          DropdownMenuItem(value: 'best_value', child: Text('✨ Best Value (Hybrid)')),
-                          DropdownMenuItem(value: 'cheapest', child: Text('💰 Cheapest Fare')),
-                          DropdownMenuItem(value: 'fastest', child: Text('⚡ Fastest Non-Stop')),
-                          DropdownMenuItem(value: 'eco_friendly', child: Text('🌿 Eco Friendly (CO2)')),
-                          DropdownMenuItem(value: 'lowest_risk', child: Text('🛡️ Lowest Delay Risk')),
+                        child: Slider(
+                          value: _budget,
+                          min: 1000,
+                          max: 100000,
+                          divisions: 99,
+                          onChanged: (v) => setState(() => _budget = v),
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildBudgetPresetBtn(5000),
+                          _buildBudgetPresetBtn(15000),
+                          _buildBudgetPresetBtn(45000),
+                          _buildBudgetPresetBtn(75000),
                         ],
-                        onChanged: (v) => setState(() => _selectedOptimizeBy = v!),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    value: _selectedOptimizeBy,
+                    style: TextStyle(color: inputTextColor, fontWeight: FontWeight.bold),
+                    dropdownColor: inputBg,
+                    decoration: InputDecoration(
+                      labelText: 'AI Optimization Priority',
+                      labelStyle: TextStyle(color: labelTextColor),
+                      filled: true,
+                      fillColor: inputBg,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: inputBorder),
                       ),
                     ),
-                  ],
-                ),
+                    items: const [
+                      DropdownMenuItem(value: 'best_value', child: Text('✨ Best Value (Hybrid)')),
+                      DropdownMenuItem(value: 'cheapest', child: Text('💰 Cheapest Fare')),
+                      DropdownMenuItem(value: 'fastest', child: Text('⚡ Fastest Non-Stop')),
+                      DropdownMenuItem(value: 'eco_friendly', child: Text('🌿 Eco Friendly (CO2)')),
+                      DropdownMenuItem(value: 'lowest_risk', child: Text('🛡️ Lowest Delay Risk')),
+                    ],
+                    onChanged: (v) => setState(() => _selectedOptimizeBy = v!),
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Max Budget Threshold:',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
+                                Text(
+                                  '₹${_budget.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF10B981),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: const Color(0xFF6366F1),
+                                thumbColor: const Color(0xFF6366F1),
+                                inactiveTrackColor: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
+                                overlayColor: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                              ),
+                              child: Slider(
+                                value: _budget,
+                                min: 1000,
+                                max: 100000,
+                                divisions: 99,
+                                onChanged: (v) => setState(() => _budget = v),
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _buildBudgetPresetBtn(5000),
+                                _buildBudgetPresetBtn(15000),
+                                _buildBudgetPresetBtn(45000),
+                                _buildBudgetPresetBtn(75000),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        flex: 2,
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedOptimizeBy,
+                          style: TextStyle(color: inputTextColor, fontWeight: FontWeight.bold),
+                          dropdownColor: inputBg,
+                          decoration: InputDecoration(
+                            labelText: 'AI Optimization Priority',
+                            labelStyle: TextStyle(color: labelTextColor),
+                            filled: true,
+                            fillColor: inputBg,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: inputBorder),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(color: inputBorder),
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'best_value', child: Text('✨ Best Value (Hybrid)')),
+                            DropdownMenuItem(value: 'cheapest', child: Text('💰 Cheapest Fare')),
+                            DropdownMenuItem(value: 'fastest', child: Text('⚡ Fastest Non-Stop')),
+                            DropdownMenuItem(value: 'eco_friendly', child: Text('🌿 Eco Friendly (CO2)')),
+                            DropdownMenuItem(value: 'lowest_risk', child: Text('🛡️ Lowest Delay Risk')),
+                          ],
+                          onChanged: (v) => setState(() => _selectedOptimizeBy = v!),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 16),
 
                 // Preferences Filter Chips
@@ -2366,9 +2501,10 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
     final report = _budgetReport ?? ApiService.getMockBudgetReport(_plannerTotalBudget, _originController.text, _destinationController.text, _plannerStayDays);
     final currency = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+    final isMobile = MediaQuery.of(context).size.width < 700;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 14 : 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2376,136 +2512,244 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           Card(
             elevation: 2,
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(isMobile ? 14 : 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        backgroundColor: Color(0xFF6366F1),
-                        child: Icon(Icons.psychology, color: Colors.white, size: 24),
-                      ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('🧠 AI Financial Travel Advisor', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                            Text('Intelligent budget health analysis, optimization & hidden cost forecasting',
-                                style: TextStyle(color: Colors.grey, fontSize: 13)),
-                          ],
+                  if (isMobile) ...[
+                    Row(
+                      children: [
+                        const CircleAvatar(
+                          backgroundColor: Color(0xFF6366F1),
+                          radius: 16,
+                          child: Icon(Icons.psychology, color: Colors.white, size: 18),
                         ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => _showAIBudgetReportModal(report),
-                        icon: const Icon(Icons.analytics, size: 16),
-                        label: const Text('View AI Budget Report'),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          foregroundColor: Colors.white,
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('🧠 AI Financial Travel Advisor', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              Text('Budget health analysis & cost forecasting', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                            ],
+                          ),
                         ),
-                        icon: const Icon(Icons.auto_awesome, size: 16),
-                        label: Text(_isOptimizedApplied ? 'Optimized (-₹4,200)' : 'Optimize My Budget'),
-                        onPressed: () {
-                          setState(() {
-                            _isOptimizedApplied = !_isOptimizedApplied;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(_isOptimizedApplied
-                                  ? '⚡ AI Budget Optimized! Switched to 400m nearby hotel & early booking fare (Saved ₹4,200).'
-                                  : 'Reverted to original budget selection.'),
-                              backgroundColor: const Color(0xFF10B981),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _showAIBudgetReportModal(report),
+                          icon: const Icon(Icons.analytics, size: 14),
+                          label: const Text('View AI Report', style: TextStyle(fontSize: 12)),
+                        ),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: const Icon(Icons.auto_awesome, size: 14),
+                          label: Text(_isOptimizedApplied ? 'Optimized' : 'Optimize Budget', style: const TextStyle(fontSize: 12)),
+                          onPressed: () {
+                            setState(() {
+                              _isOptimizedApplied = !_isOptimizedApplied;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(_isOptimizedApplied
+                                    ? '⚡ AI Budget Optimized! Saved ₹4,200.'
+                                    : 'Reverted to original budget selection.'),
+                                backgroundColor: const Color(0xFF10B981),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        const CircleAvatar(
+                          backgroundColor: Color(0xFF6366F1),
+                          child: Icon(Icons.psychology, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('🧠 AI Financial Travel Advisor', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                              Text('Intelligent budget health analysis, optimization & hidden cost forecasting',
+                                  style: TextStyle(color: Colors.grey, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => _showAIBudgetReportModal(report),
+                          icon: const Icon(Icons.analytics, size: 16),
+                          label: const Text('View AI Budget Report'),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: const Icon(Icons.auto_awesome, size: 16),
+                          label: Text(_isOptimizedApplied ? 'Optimized (-₹4,200)' : 'Optimize My Budget'),
+                          onPressed: () {
+                            setState(() {
+                              _isOptimizedApplied = !_isOptimizedApplied;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(_isOptimizedApplied
+                                    ? '⚡ AI Budget Optimized! Switched to 400m nearby hotel & early booking fare (Saved ₹4,200).'
+                                    : 'Reverted to original budget selection.'),
+                                backgroundColor: const Color(0xFF10B981),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   const Text('📍 Journey Parameters & Target Budget', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _originController,
-                          decoration: const InputDecoration(
-                            labelText: 'Starting Destination (Origin)',
-                            hintText: 'e.g. Kanpur, Delhi',
-                            prefixIcon: Icon(Icons.location_on, color: Color(0xFF6366F1)),
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  if (isMobile) ...[
+                    TextField(
+                      controller: _originController,
+                      decoration: const InputDecoration(
+                        labelText: 'Starting Destination (Origin)',
+                        hintText: 'e.g. Kanpur, Delhi',
+                        prefixIcon: Icon(Icons.location_on, color: Color(0xFF6366F1)),
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      onSubmitted: (_) => _loadBudgetReport(),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _destinationController,
+                      decoration: const InputDecoration(
+                        labelText: 'Ending Destination (Target)',
+                        hintText: 'e.g. Bangalore, Mumbai',
+                        prefixIcon: Icon(Icons.flight_land, color: Color(0xFF10B981)),
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      onSubmitted: (_) => _loadBudgetReport(),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      value: _plannerStayDays,
+                      decoration: const InputDecoration(
+                        labelText: 'Journey Stay Duration',
+                        prefixIcon: Icon(Icons.calendar_month, color: Colors.amber),
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 1, child: Text('1 Day Stay')),
+                        DropdownMenuItem(value: 2, child: Text('2 Days Stay')),
+                        DropdownMenuItem(value: 3, child: Text('3 Days Stay')),
+                        DropdownMenuItem(value: 4, child: Text('4 Days Stay')),
+                        DropdownMenuItem(value: 5, child: Text('5 Days Stay')),
+                        DropdownMenuItem(value: 7, child: Text('7 Days Stay')),
+                        DropdownMenuItem(value: 10, child: Text('10 Days Stay')),
+                        DropdownMenuItem(value: 14, child: Text('14 Days Stay')),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(() => _plannerStayDays = v);
+                          _loadBudgetReport();
+                        }
+                      },
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _originController,
+                            decoration: const InputDecoration(
+                              labelText: 'Starting Destination (Origin)',
+                              hintText: 'e.g. Kanpur, Delhi',
+                              prefixIcon: Icon(Icons.location_on, color: Color(0xFF6366F1)),
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            ),
+                            onSubmitted: (_) => _loadBudgetReport(),
                           ),
-                          onSubmitted: (_) => _loadBudgetReport(),
                         ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: Icon(Icons.swap_horiz, color: Colors.grey),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _destinationController,
-                          decoration: const InputDecoration(
-                            labelText: 'Ending Destination (Target)',
-                            hintText: 'e.g. Bangalore, Mumbai',
-                            prefixIcon: Icon(Icons.flight_land, color: Color(0xFF10B981)),
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10),
+                          child: Icon(Icons.swap_horiz, color: Colors.grey),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _destinationController,
+                            decoration: const InputDecoration(
+                              labelText: 'Ending Destination (Target)',
+                              hintText: 'e.g. Bangalore, Mumbai',
+                              prefixIcon: Icon(Icons.flight_land, color: Color(0xFF10B981)),
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            ),
+                            onSubmitted: (_) => _loadBudgetReport(),
                           ),
-                          onSubmitted: (_) => _loadBudgetReport(),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: DropdownButtonFormField<int>(
-                          value: _plannerStayDays,
-                          decoration: const InputDecoration(
-                            labelText: 'Journey Stay Duration',
-                            prefixIcon: Icon(Icons.calendar_month, color: Colors.amber),
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _plannerStayDays,
+                            decoration: const InputDecoration(
+                              labelText: 'Journey Stay Duration',
+                              prefixIcon: Icon(Icons.calendar_month, color: Colors.amber),
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 1, child: Text('1 Day Stay')),
+                              DropdownMenuItem(value: 2, child: Text('2 Days Stay')),
+                              DropdownMenuItem(value: 3, child: Text('3 Days Stay')),
+                              DropdownMenuItem(value: 4, child: Text('4 Days Stay')),
+                              DropdownMenuItem(value: 5, child: Text('5 Days Stay')),
+                              DropdownMenuItem(value: 7, child: Text('7 Days Stay')),
+                              DropdownMenuItem(value: 10, child: Text('10 Days Stay')),
+                              DropdownMenuItem(value: 14, child: Text('14 Days Stay')),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) {
+                                setState(() => _plannerStayDays = v);
+                                _loadBudgetReport();
+                              }
+                            },
                           ),
-                          items: const [
-                            DropdownMenuItem(value: 1, child: Text('1 Day Stay')),
-                            DropdownMenuItem(value: 2, child: Text('2 Days Stay')),
-                            DropdownMenuItem(value: 3, child: Text('3 Days Stay')),
-                            DropdownMenuItem(value: 4, child: Text('4 Days Stay')),
-                            DropdownMenuItem(value: 5, child: Text('5 Days Stay')),
-                            DropdownMenuItem(value: 7, child: Text('7 Days Stay')),
-                            DropdownMenuItem(value: 10, child: Text('10 Days Stay')),
-                            DropdownMenuItem(value: 14, child: Text('14 Days Stay')),
-                          ],
-                          onChanged: (v) {
-                            if (v != null) {
-                              setState(() => _plannerStayDays = v);
-                              _loadBudgetReport();
-                            }
-                          },
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Text('Target Trip Budget: ', style: TextStyle(fontSize: 15, color: Colors.grey[400])),
+                      Text('Target Trip Budget: ', style: TextStyle(fontSize: 14, color: Colors.grey[400])),
                       Text(currency.format(_plannerTotalBudget),
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                          style: TextStyle(fontSize: isMobile ? 18 : 22, fontWeight: FontWeight.bold, color: const Color(0xFF10B981))),
                       const Spacer(),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6366F1),
                           foregroundColor: Colors.white,
                         ),
-                        icon: const Icon(Icons.refresh, size: 16),
-                        label: const Text('Update AI Analysis'),
+                        icon: const Icon(Icons.refresh, size: 14),
+                        label: Text(isMobile ? 'Update' : 'Update AI Analysis', style: const TextStyle(fontSize: 12)),
                         onPressed: () => _loadBudgetReport(),
                       ),
                     ],
@@ -2530,16 +2774,16 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           // 1. AI BUDGET SUMMARY HEADER CARD
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(isMobile ? 14 : 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Text('🧠 AI Budget Summary', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text('🧠 AI Budget Summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: (report.isOverBudget ? Colors.red : const Color(0xFF10B981)).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
@@ -2547,47 +2791,40 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                         child: Row(
                           children: [
                             Icon(report.isOverBudget ? Icons.warning : Icons.check_circle,
-                                size: 14, color: report.isOverBudget ? Colors.red : const Color(0xFF10B981)),
+                                size: 12, color: report.isOverBudget ? Colors.red : const Color(0xFF10B981)),
                             const SizedBox(width: 4),
                             Text('Health: ${report.budgetHealth}',
                                 style: TextStyle(
                                     color: report.isOverBudget ? Colors.red : const Color(0xFF10B981),
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 12)),
+                                    fontSize: 11)),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text('AI Confidence: ${report.aiConfidence}%',
-                            style: const TextStyle(color: Color(0xFF818CF8), fontWeight: FontWeight.bold, fontSize: 12)),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text('AI Score: ${report.aiScore}/100',
-                            style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
-                      ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: _buildMetricTile('Total Budget', currency.format(report.totalBudget), Icons.account_balance_wallet, Colors.blue)),
-                      Expanded(child: _buildMetricTile('Recommended', currency.format(report.recommendedBudget), Icons.task_alt, const Color(0xFF10B981))),
-                      Expanded(child: _buildMetricTile('Estimated Savings', currency.format(report.estimatedSavings), Icons.savings, Colors.amber)),
-                      Expanded(child: _buildMetricTile('Health Meter', '${report.healthPercentage.toInt()}%', Icons.speed, report.isOverBudget ? Colors.red : const Color(0xFF10B981))),
-                    ],
-                  ),
+                  const SizedBox(height: 14),
+                  if (isMobile) ...[
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        SizedBox(width: (MediaQuery.of(context).size.width - 60) / 2, child: _buildMetricTile('Total Budget', currency.format(report.totalBudget), Icons.account_balance_wallet, Colors.blue)),
+                        SizedBox(width: (MediaQuery.of(context).size.width - 60) / 2, child: _buildMetricTile('Recommended', currency.format(report.recommendedBudget), Icons.task_alt, const Color(0xFF10B981))),
+                        SizedBox(width: (MediaQuery.of(context).size.width - 60) / 2, child: _buildMetricTile('Estimated Savings', currency.format(report.estimatedSavings), Icons.savings, Colors.amber)),
+                        SizedBox(width: (MediaQuery.of(context).size.width - 60) / 2, child: _buildMetricTile('Health Meter', '${report.healthPercentage.toInt()}%', Icons.speed, report.isOverBudget ? Colors.red : const Color(0xFF10B981))),
+                      ],
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(child: _buildMetricTile('Total Budget', currency.format(report.totalBudget), Icons.account_balance_wallet, Colors.blue)),
+                        Expanded(child: _buildMetricTile('Recommended', currency.format(report.recommendedBudget), Icons.task_alt, const Color(0xFF10B981))),
+                        Expanded(child: _buildMetricTile('Estimated Savings', currency.format(report.estimatedSavings), Icons.savings, Colors.amber)),
+                        Expanded(child: _buildMetricTile('Health Meter', '${report.healthPercentage.toInt()}%', Icons.speed, report.isOverBudget ? Colors.red : const Color(0xFF10B981))),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(14),
@@ -2661,7 +2898,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           // 2. SMART BUDGET ALLOCATION
           Text('📊 Smart Category Allocation with AI Analysis', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
             children: report.allocations.map((alloc) {
               IconData catIcon = Icons.flight;
               Color catColor = const Color(0xFF3B82F6);
@@ -2676,11 +2915,12 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 catColor = const Color(0xFF10B981);
               }
 
-              return Expanded(
+              return SizedBox(
+                width: isMobile ? (MediaQuery.of(context).size.width - 40) / 2 : 210,
                 child: Card(
-                  margin: const EdgeInsets.only(right: 10),
+                  margin: EdgeInsets.zero,
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -2688,15 +2928,15 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                           children: [
                             CircleAvatar(
                               backgroundColor: catColor.withValues(alpha: 0.15),
-                              radius: 16,
-                              child: Icon(catIcon, color: catColor, size: 16),
+                              radius: 14,
+                              child: Icon(catIcon, color: catColor, size: 14),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(alloc.category, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+                            const SizedBox(width: 6),
+                            Expanded(child: Text(alloc.category, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis)),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        Text(currency.format(alloc.amount), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 10),
+                        Text(currency.format(alloc.amount), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 4),
                         LinearProgressIndicator(
                           value: alloc.percentage / 100,
@@ -2706,20 +2946,20 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            Text('${alloc.percentage.toInt()}% of budget', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                            Text('${alloc.percentage.toInt()}%', style: const TextStyle(color: Colors.grey, fontSize: 10)),
                             const Spacer(),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF10B981).withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Text(alloc.status, style: const TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.bold)),
+                              child: Text(alloc.status, style: const TextStyle(color: Color(0xFF10B981), fontSize: 9, fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(alloc.reason, style: const TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic)),
+                        const SizedBox(height: 6),
+                        Text(alloc.reason, style: const TextStyle(color: Colors.grey, fontSize: 10, fontStyle: FontStyle.italic), maxLines: 2, overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -2730,102 +2970,190 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           const SizedBox(height: 20),
 
           // 3 & 7. SAVINGS SUGGESTIONS & PAYMENT OPTIMIZATION (2 columns)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 3. AI Saving Suggestions
-              Expanded(
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          if (isMobile) ...[
+            // 3. AI Saving Suggestions
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.savings, color: Color(0xFF10B981)),
-                            const SizedBox(width: 8),
-                            const Text('✓ AI Saving Suggestions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text('Potential Savings: ${currency.format(report.potentialSavings)}',
-                                  style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 12)),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        ...report.savingsSuggestions.map((item) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 16),
-                                  const SizedBox(width: 8),
-                                  Expanded(child: Text(item.title, style: const TextStyle(fontSize: 13))),
-                                  Text('Save ${currency.format(item.savings)}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 13)),
-                                ],
-                              ),
-                            )),
+                        const Icon(Icons.savings, color: Color(0xFF10B981), size: 20),
+                        const SizedBox(width: 6),
+                        const Expanded(child: Text('✓ AI Saving Suggestions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text('Savings: ${currency.format(report.potentialSavings)}',
+                          style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 11)),
+                    ),
+                    const SizedBox(height: 12),
+                    ...report.savingsSuggestions.map((item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 14),
+                              const SizedBox(width: 6),
+                              Expanded(child: Text(item.title, style: const TextStyle(fontSize: 12))),
+                              Text('Save ${currency.format(item.savings)}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 12)),
+                            ],
+                          ),
+                        )),
+                  ],
                 ),
               ),
-              const SizedBox(width: 16),
+            ),
+            const SizedBox(height: 14),
 
-              // 7. Payment Optimization
-              Expanded(
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            // 7. Payment Optimization
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
                       children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.credit_card, color: Color(0xFF6366F1)),
-                            SizedBox(width: 8),
-                            Text('💳 Payment Optimization Offers', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        ...report.paymentOptimizations.map((offer) => Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF6366F1).withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.card_giftcard, color: Color(0xFF818CF8), size: 18),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(offer.provider, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                        Text(offer.type, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                                      ],
-                                    ),
-                                  ),
-                                  Text('Save ${currency.format(offer.savings)}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 13)),
-                                ],
-                              ),
-                            )),
+                        Icon(Icons.credit_card, color: Color(0xFF6366F1), size: 20),
+                        SizedBox(width: 8),
+                        Text('💳 Payment Offers', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    ...report.paymentOptimizations.map((offer) => Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.card_giftcard, color: Color(0xFF818CF8), size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(offer.provider, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                    Text(offer.type, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                                  ],
+                                ),
+                              ),
+                              Text('Save ${currency.format(offer.savings)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 12)),
+                            ],
+                          ),
+                        )),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 3. AI Saving Suggestions
+                Expanded(
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.savings, color: Color(0xFF10B981)),
+                              const SizedBox(width: 8),
+                              const Text('✓ AI Saving Suggestions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text('Potential Savings: ${currency.format(report.potentialSavings)}',
+                                    style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          ...report.savingsSuggestions.map((item) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 16),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: Text(item.title, style: const TextStyle(fontSize: 13))),
+                                    Text('Save ${currency.format(item.savings)}',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 13)),
+                                  ],
+                                ),
+                              )),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 16),
+
+                // 7. Payment Optimization
+                Expanded(
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.credit_card, color: Color(0xFF6366F1)),
+                              SizedBox(width: 8),
+                              Text('💳 Payment Optimization Offers', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          ...report.paymentOptimizations.map((offer) => Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.card_giftcard, color: Color(0xFF818CF8), size: 18),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(offer.provider, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                          Text(offer.type, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                                        ],
+                                      ),
+                                    ),
+                                    Text('Save ${currency.format(offer.savings)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 13)),
+                                  ],
+                                ),
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 20),
 
           // 8. HOTEL OPTIMIZATION & 10. HIDDEN EXPENSE ANALYSIS
@@ -3687,20 +4015,28 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   // TAB 4: REAL ITINERARY BUILDER & TIMELINE
   Widget _buildItineraryTab() {
     final currency = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+    final isMobile = MediaQuery.of(context).size.width < 700;
 
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 14 : 24),
       children: [
-        Row(
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const Icon(Icons.map, color: Color(0xFF6366F1), size: 24),
-            const SizedBox(width: 10),
-            const Text('Complete Trip Itinerary Timeline', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const Spacer(),
+            const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.map, color: Color(0xFF6366F1), size: 22),
+                SizedBox(width: 8),
+                Text('Complete Trip Itinerary Timeline', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ],
+            ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white),
               icon: const Icon(Icons.add_location_alt, size: 16),
-              label: const Text('Add Search Route to Itinerary'),
+              label: Text(isMobile ? 'Add Route' : 'Add Search Route to Itinerary', style: const TextStyle(fontSize: 12)),
               onPressed: () {
                 setState(() => _selectedIndex = 2);
                 _handleSearch();
@@ -3712,7 +4048,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
         if (_searchResults.isEmpty) ...[
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(isMobile ? 14 : 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -3723,14 +4059,16 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                         child: Icon(Icons.flight_takeoff, color: Colors.white),
                       ),
                       const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Day 1: ${_originController.text} ➔ ${_destinationController.text} Transit',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text('Planned Duration: ${_plannerStayDays} Days Stay • Budget: ${currency.format(_plannerTotalBudget)}',
-                              style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Day 1: ${_originController.text} ➔ ${_destinationController.text} Transit',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: isMobile ? 14 : 16)),
+                            Text('Planned Duration: ${_plannerStayDays} Days Stay • Budget: ${currency.format(_plannerTotalBudget)}',
+                                style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -4026,8 +4364,6 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                         ),
                         child: Column(
                           children: [
-                            Text(month, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF818CF8))),
-                            const SizedBox(height: 8),
                             Text(currency.format(spend), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           ],
                         ),
@@ -4047,6 +4383,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   Widget _buildExploreTab() {
     final isDark = widget.isDarkMode;
     final currencyFormat = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+    final isMobile = MediaQuery.of(context).size.width < 700;
 
     final heroGradient = isDark
         ? const LinearGradient(
@@ -4075,13 +4412,13 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     ];
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(28.0),
+      padding: EdgeInsets.all(isMobile ? 14.0 : 28.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Hero Banner
           Container(
-            padding: const EdgeInsets.all(32),
+            padding: EdgeInsets.all(isMobile ? 20 : 32),
             decoration: BoxDecoration(
               gradient: heroGradient,
               borderRadius: BorderRadius.circular(28),
@@ -4122,7 +4459,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       Text(
                         'Intelligent Sightseeing & Interactive Navigation',
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: isMobile ? 22 : 28,
                           fontWeight: FontWeight.bold,
                           height: 1.2,
                           color: titleColor,
@@ -4131,10 +4468,12 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       const SizedBox(height: 10),
                       Text(
                         'Once arrived, AI dynamically plans, explains, navigates, and optimizes your complete sightseeing experience with real interactive maps, AI reasoning, voice guides & emergency SOS mode.',
-                        style: TextStyle(color: subtitleColor, fontSize: 14, height: 1.5),
+                        style: TextStyle(color: subtitleColor, fontSize: 13, height: 1.5),
                       ),
-                      const SizedBox(height: 24),
-                      Row(
+                      const SizedBox(height: 20),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
                         children: [
                           ElevatedButton.icon(
                             onPressed: () => _handlePlanExplore(),
@@ -4143,19 +4482,18 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF6366F1),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               elevation: 6,
                             ),
                           ),
-                          const SizedBox(width: 14),
                           OutlinedButton.icon(
                             onPressed: _toggleEmergencyMode,
                             icon: const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 18),
                             label: const Text('🚨 Emergency SOS Mode', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.redAccent, width: 1.5),
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
                           ),
@@ -4167,47 +4505,11 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 28),
-
-          // API Credentials Warning Banner (if missing credentials)
-          if (_exploreItinerary != null && _exploreItinerary!.waitingForApiCredentials) ...[
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.lock_clock, color: Colors.amber, size: 28),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Waiting for API Credentials.',
-                          style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _exploreItinerary!.apiCredentialsMessage ??
-                              'Provide external API keys (GOOGLE_MAPS_API_KEY, TRIPADVISOR_API_KEY, OPENWEATHER_API_KEY, ELEVENLABS_API_KEY) in environment variables to enable real-time external API fetching.',
-                          style: TextStyle(color: titleColor, fontSize: 13, height: 1.4),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 28),
-          ],
+          const SizedBox(height: 24),
 
           // Controls & Inputs Card
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isMobile ? 16 : 24),
             decoration: BoxDecoration(
               color: cardBg,
               borderRadius: BorderRadius.circular(24),
@@ -4224,28 +4526,26 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Customize Your Sightseeing Preferences', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: titleColor)),
+                Text('Customize Your Sightseeing Preferences', style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: titleColor)),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: TextField(
-                        controller: _exploreLocationController,
-                        style: TextStyle(fontWeight: FontWeight.w600, color: titleColor),
-                        onSubmitted: (val) => _handlePlanExplore(),
-                        decoration: InputDecoration(
-                          labelText: 'Destination / Current Location',
-                          hintText: 'e.g., Red Fort Delhi, PSIT Kanpur, London, Paris',
-                          prefixIcon: const Icon(Icons.pin_drop, color: Color(0xFF6366F1)),
-                          filled: true,
-                          fillColor: inputBg,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: inputBorder)),
-                        ),
-                      ),
+                if (isMobile) ...[
+                  TextField(
+                    controller: _exploreLocationController,
+                    style: TextStyle(fontWeight: FontWeight.w600, color: titleColor),
+                    onSubmitted: (val) => _handlePlanExplore(),
+                    decoration: InputDecoration(
+                      labelText: 'Destination / Current Location',
+                      hintText: 'e.g., Red Fort Delhi, PSIT Kanpur',
+                      prefixIcon: const Icon(Icons.pin_drop, color: Color(0xFF6366F1)),
+                      filled: true,
+                      fillColor: inputBg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: inputBorder)),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
                       onPressed: () {
                         setState(() {
                           _exploreLocationController.text = 'Live GPS: Red Fort, Delhi';
@@ -4254,70 +4554,155 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                         _handlePlanExplore();
                       },
                       icon: const Icon(Icons.my_location, size: 18),
-                      label: const Text('Live GPS'),
+                      label: const Text('Live GPS Location'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF10B981),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextField(
+                          controller: _exploreLocationController,
+                          style: TextStyle(fontWeight: FontWeight.w600, color: titleColor),
+                          onSubmitted: (val) => _handlePlanExplore(),
+                          decoration: InputDecoration(
+                            labelText: 'Destination / Current Location',
+                            hintText: 'e.g., Red Fort Delhi, PSIT Kanpur, London, Paris',
+                            prefixIcon: const Icon(Icons.pin_drop, color: Color(0xFF6366F1)),
+                            filled: true,
+                            fillColor: inputBg,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: inputBorder)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _exploreLocationController.text = 'Live GPS: Red Fort, Delhi';
+                            _exploreMapCenter = const LatLng(28.6562, 77.2410);
+                          });
+                          _handlePlanExplore();
+                        },
+                        icon: const Icon(Icons.my_location, size: 18),
+                        label: const Text('Live GPS'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 20),
 
                 // Hours & Budget Sliders
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                if (isMobile) ...[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Available Time:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
-                              Text('${_exploreHours.toStringAsFixed(1)} Hours', style: const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          Slider(
-                            value: _exploreHours,
-                            min: 1.0,
-                            max: 12.0,
-                            divisions: 22,
-                            activeColor: const Color(0xFF6366F1),
-                            onChanged: (v) => setState(() => _exploreHours = v),
-                            onChangeEnd: (v) => _handlePlanExplore(),
-                          ),
+                          Text('Available Time:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
+                          Text('${_exploreHours.toStringAsFixed(1)} Hours', style: const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Slider(
+                        value: _exploreHours,
+                        min: 1.0,
+                        max: 12.0,
+                        divisions: 22,
+                        activeColor: const Color(0xFF6366F1),
+                        onChanged: (v) => setState(() => _exploreHours = v),
+                        onChangeEnd: (v) => _handlePlanExplore(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Sightseeing Budget:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
-                              Text(currencyFormat.format(_exploreBudget), style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          Slider(
-                            value: _exploreBudget,
-                            min: 500.0,
-                            max: 20000.0,
-                            divisions: 39,
-                            activeColor: const Color(0xFF10B981),
-                            onChanged: (v) => setState(() => _exploreBudget = v),
-                            onChangeEnd: (v) => _handlePlanExplore(),
-                          ),
+                          Text('Sightseeing Budget:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
+                          Text(currencyFormat.format(_exploreBudget), style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
                         ],
                       ),
-                    ),
-                  ],
-                ),
+                      Slider(
+                        value: _exploreBudget,
+                        min: 500.0,
+                        max: 10000.0,
+                        divisions: 19,
+                        activeColor: const Color(0xFF10B981),
+                        onChanged: (v) => setState(() => _exploreBudget = v),
+                        onChangeEnd: (v) => _handlePlanExplore(),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Available Time:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
+                                Text('${_exploreHours.toStringAsFixed(1)} Hours', style: const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            Slider(
+                              value: _exploreHours,
+                              min: 1.0,
+                              max: 12.0,
+                              divisions: 22,
+                              activeColor: const Color(0xFF6366F1),
+                              onChanged: (v) => setState(() => _exploreHours = v),
+                              onChangeEnd: (v) => _handlePlanExplore(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Sightseeing Budget:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: titleColor)),
+                                Text(currencyFormat.format(_exploreBudget), style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            Slider(
+                              value: _exploreBudget,
+                              min: 500.0,
+                              max: 10000.0,
+                              divisions: 19,
+                              activeColor: const Color(0xFF10B981),
+                              onChanged: (v) => setState(() => _exploreBudget = v),
+                              onChangeEnd: (v) => _handlePlanExplore(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 16),
 
                 // Interest Chips
