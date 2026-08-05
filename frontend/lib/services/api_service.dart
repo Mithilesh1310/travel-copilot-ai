@@ -161,35 +161,49 @@ class ApiService {
     ];
   }
 
-  static Future<Map<String, dynamic>?> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );
+      final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        return {'success': true, 'data': data};
+      } else {
+        return {'success': false, 'error': data['detail'] ?? 'Invalid email or password.'};
       }
-    } catch (_) {}
-    return null;
+    } catch (e) {
+      return {'success': false, 'error': 'Network connection failed. Please check your connection and try again.'};
+    }
   }
 
-  static Future<Map<String, dynamic>?> register(String email, String password, String name) async {
+  static Future<Map<String, dynamic>> register(String email, String password, String name) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password, 'name': name}),
       );
+      final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        return {'success': true, 'data': data};
+      } else {
+        return {'success': false, 'error': data['detail'] ?? 'Registration failed.'};
       }
-    } catch (_) {}
-    return null;
+    } catch (e) {
+      return {'success': false, 'error': 'Network connection failed. Please check your connection and try again.'};
+    }
   }
 
-  static Future<Map<String, dynamic>?> googleLogin(String email, String name, String googleId) async {
+  static Future<Map<String, dynamic>> googleLogin({
+    required String email,
+    required String name,
+    String? googleId,
+    String? idToken,
+    String? photoUrl,
+  }) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/google'),
@@ -197,8 +211,30 @@ class ApiService {
         body: jsonEncode({
           'email': email,
           'name': name,
-          'google_id': googleId,
+          'google_id': googleId ?? 'google_oauth_${email.hashCode}',
+          'id_token': idToken,
+          'photo_url': photoUrl,
         }),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data};
+      } else {
+        return {'success': false, 'error': data['detail'] ?? 'Google authentication failed.'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error during Google authentication.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getMe(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
       if (response.statusCode == 200) {
         return jsonDecode(response.body);

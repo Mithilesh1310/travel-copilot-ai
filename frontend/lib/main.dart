@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'models/travel_models.dart';
 import 'models/explore_models.dart';
 import 'services/api_service.dart';
@@ -137,6 +139,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   String _userName = 'Traveler';
   String _userEmail = 'traveler@example.com';
   String? _userToken;
+  String? _userPhotoUrl;
+  String _authProvider = 'email';
+  bool _isAuthLoading = false;
   bool _isGateRegisterMode = false;
   final TextEditingController _authNameController = TextEditingController();
   final TextEditingController _authEmailController = TextEditingController();
@@ -165,11 +170,110 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _restoreAuthSession();
     _loadInitialData();
     _initChat();
     _loadBudgetReport();
     _loadExploreMissions();
     _handlePlanExplore();
+  }
+
+  void _restoreAuthSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token != null && token.isNotEmpty) {
+      final user = await ApiService.getMe(token);
+      if (user != null && mounted) {
+        setState(() {
+          _isLoggedIn = true;
+          _userToken = token;
+          _userName = user['name'] ?? 'Traveler';
+          _userEmail = user['email'] ?? 'traveler@example.com';
+          _userPhotoUrl = user['photo_url'];
+          _authProvider = user['auth_provider'] ?? 'email';
+        });
+      } else {
+        await prefs.clear();
+      }
+    }
+  }
+
+  void _saveAuthSession(String token, Map<String, dynamic> user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('jwt_token', token);
+    await prefs.setString('user_name', user['name'] ?? '');
+    await prefs.setString('user_email', user['email'] ?? '');
+    if (user['photo_url'] != null) {
+      await prefs.setString('user_photo', user['photo_url']);
+    }
+    await prefs.setString('auth_provider', user['auth_provider'] ?? 'email');
+  }
+
+  void _handleLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = false;
+        _userToken = null;
+        _userName = 'Traveler';
+        _userEmail = 'traveler@example.com';
+        _userPhotoUrl = null;
+        _authProvider = 'email';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Logged out successfully.'),
+          backgroundColor: Color(0xFF6366F1),
+        ),
+      );
+    }
+  }
+
+  void _performGoogleSignIn() async {
+    setState(() => _isAuthLoading = true);
+
+    final email = _authEmailController.text.trim().isNotEmpty
+        ? _authEmailController.text.trim()
+        : 'traveler.google@gmail.com';
+    final name = _authNameController.text.trim().isNotEmpty
+        ? _authNameController.text.trim()
+        : 'Google Traveler';
+
+    final res = await ApiService.googleLogin(
+      email: email,
+      name: name,
+      googleId: 'google_id_${email.hashCode}',
+    );
+
+    if (mounted) {
+      setState(() => _isAuthLoading = false);
+      if (res['success'] == true && res['data'] != null) {
+        final data = res['data'];
+        _saveAuthSession(data['access_token'], data['user']);
+        setState(() {
+          _isLoggedIn = true;
+          _userToken = data['access_token'];
+          _userName = data['user']['name'] ?? name;
+          _userEmail = data['user']['email'] ?? email;
+          _userPhotoUrl = data['user']['photo_url'];
+          _authProvider = 'google';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🌐 Google Authentication Successful! Welcome, $_userName.'),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['error'] ?? 'Google authentication failed.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _loadExploreMissions() async {
@@ -3935,24 +4039,37 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                           label: const Text('Continue with Google', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                           onPressed: () async {
                             setModalState(() => isLoading = true);
+                            final email = emailController.text.trim().isNotEmpty ? emailController.text.trim() : 'user.google@gmail.com';
+                            final name = nameController.text.trim().isNotEmpty ? nameController.text.trim() : 'Google Traveler';
                             final res = await ApiService.googleLogin(
-                              emailController.text.isNotEmpty ? emailController.text : 'user.google@gmail.com',
-                              nameController.text.isNotEmpty ? nameController.text : 'Google Traveler',
-                              'google_oauth_id_998822',
+                              email: email,
+                              name: name,
+                              googleId: 'google_id_${email.hashCode}',
                             );
                             setModalState(() => isLoading = false);
-                            if (res != null && res['access_token'] != null) {
+                            if (res['success'] == true && res['data'] != null) {
+                              final data = res['data'];
+                              _saveAuthSession(data['access_token'], data['user']);
                               setState(() {
                                 _isLoggedIn = true;
-                                _userToken = res!['access_token'];
-                                _userName = res['user']?['name'] ?? 'Google Traveler';
-                                _userEmail = res['user']?['email'] ?? 'user.google@gmail.com';
+                                _userToken = data['access_token'];
+                                _userName = data['user']['name'] ?? name;
+                                _userEmail = data['user']['email'] ?? email;
+                                _userPhotoUrl = data['user']['photo_url'];
+                                _authProvider = 'google';
                               });
-                              Navigator.pop(context);
+                              if (context.mounted) Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('🌐 Google Sign-In Successful! Welcome, $_userName.'),
+                                  content: Text('🌐 Google Authentication Successful! Welcome, $_userName.'),
                                   backgroundColor: const Color(0xFF10B981),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(res['error'] ?? 'Google authentication failed.'),
+                                  backgroundColor: Colors.red,
                                 ),
                               );
                             }
@@ -3983,29 +4100,50 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             onPressed: () async {
+                              final email = emailController.text.trim();
+                              final pass = passwordController.text.trim();
+                              final name = nameController.text.trim();
+
+                              if (email.isEmpty || !email.contains('@')) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please enter a valid email address.'), backgroundColor: Colors.red),
+                                );
+                                return;
+                              }
+                              if (pass.isEmpty || pass.length < 6) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Password must be at least 6 characters long.'), backgroundColor: Colors.red),
+                                );
+                                return;
+                              }
+
                               setModalState(() => isLoading = true);
-                              Map<String, dynamic>? res;
+                              Map<String, dynamic> res;
                               if (isRegister) {
-                                res = await ApiService.register(
-                                  emailController.text,
-                                  passwordController.text,
-                                  nameController.text,
-                                );
+                                if (name.isEmpty) {
+                                  setModalState(() => isLoading = false);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Please enter your full name.'), backgroundColor: Colors.red),
+                                  );
+                                  return;
+                                }
+                                res = await ApiService.register(email, pass, name);
                               } else {
-                                res = await ApiService.login(
-                                  emailController.text,
-                                  passwordController.text,
-                                );
+                                res = await ApiService.login(email, pass);
                               }
                               setModalState(() => isLoading = false);
-                              if (res != null && res['access_token'] != null) {
+                              if (res['success'] == true && res['data'] != null) {
+                                final data = res['data'];
+                                _saveAuthSession(data['access_token'], data['user']);
                                 setState(() {
                                   _isLoggedIn = true;
-                                  _userToken = res!['access_token'];
-                                  _userName = res['user']?['name'] ?? emailController.text.split('@')[0];
-                                  _userEmail = emailController.text;
+                                  _userToken = data['access_token'];
+                                  _userName = data['user']['name'] ?? email.split('@')[0];
+                                  _userEmail = email;
+                                  _userPhotoUrl = data['user']['photo_url'];
+                                  _authProvider = 'email';
                                 });
-                                Navigator.pop(context);
+                                if (context.mounted) Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('🎉 Welcome back, $_userName! Session authenticated.'),
@@ -4014,8 +4152,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                                 );
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Authentication failed. Check credentials.'),
+                                  SnackBar(
+                                    content: Text(res['error'] ?? 'Authentication failed. Check credentials.'),
                                     backgroundColor: Colors.red,
                                   ),
                                 );
@@ -5158,23 +5296,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                             ),
                             icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 30),
                             label: const Text('Continue with Google', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                            onPressed: () async {
-                              final email = _authEmailController.text.trim().isNotEmpty
-                                  ? _authEmailController.text.trim()
-                                  : 'user.google@gmail.com';
-                              final name = _authNameController.text.trim().isNotEmpty
-                                  ? _authNameController.text.trim()
-                                  : 'Google Traveler';
-                              final res = await ApiService.googleLogin(email, name, 'google_oauth_id_998822');
-                              if (res != null && res['access_token'] != null) {
-                                setState(() {
-                                  _isLoggedIn = true;
-                                  _userToken = res['access_token'];
-                                  _userName = res['user']?['name'] ?? name;
-                                  _userEmail = res['user']?['email'] ?? email;
-                                });
-                              }
-                            },
+                            onPressed: _isAuthLoading ? null : _performGoogleSignIn,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -5221,62 +5343,103 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6366F1),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: () async {
-                              final email = _authEmailController.text.trim();
-                              final pass = _authPasswordController.text.trim();
-                              final name = _authNameController.text.trim();
+                        if (_isAuthLoading)
+                          const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)))
+                        else
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF6366F1),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () async {
+                                final email = _authEmailController.text.trim();
+                                final pass = _authPasswordController.text.trim();
+                                final name = _authNameController.text.trim();
 
-                              if (_isGateRegisterMode) {
-                                if (name.isEmpty) {
+                                if (email.isEmpty || !email.contains('@')) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Please enter your full name.'), backgroundColor: Colors.red),
+                                    const SnackBar(content: Text('Please enter a valid email address.'), backgroundColor: Colors.red),
                                   );
                                   return;
                                 }
-                                final res = await ApiService.register(email, pass, name);
-                                if (res != null && res['access_token'] != null) {
-                                  setState(() {
-                                    _isLoggedIn = true;
-                                    _userToken = res['access_token'];
-                                    _userName = res['user']?['name'] ?? name;
-                                    _userEmail = email;
-                                  });
-                                } else {
+                                if (pass.isEmpty || pass.length < 6) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Registration failed. Check details or email.'), backgroundColor: Colors.red),
+                                    const SnackBar(content: Text('Password must be at least 6 characters long.'), backgroundColor: Colors.red),
                                   );
+                                  return;
                                 }
-                              } else {
-                                final res = await ApiService.login(email, pass);
-                                if (res != null && res['access_token'] != null) {
-                                  setState(() {
-                                    _isLoggedIn = true;
-                                    _userToken = res['access_token'];
-                                    _userName = res['user']?['name'] ?? email.split('@')[0];
-                                    _userEmail = email;
-                                  });
+
+                                setState(() => _isAuthLoading = true);
+
+                                if (_isGateRegisterMode) {
+                                  if (name.isEmpty) {
+                                    setState(() => _isAuthLoading = false);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Please enter your full name.'), backgroundColor: Colors.red),
+                                    );
+                                    return;
+                                  }
+                                  final res = await ApiService.register(email, pass, name);
+                                  setState(() => _isAuthLoading = false);
+                                  if (res['success'] == true && res['data'] != null) {
+                                    final data = res['data'];
+                                    _saveAuthSession(data['access_token'], data['user']);
+                                    setState(() {
+                                      _isLoggedIn = true;
+                                      _userToken = data['access_token'];
+                                      _userName = data['user']['name'] ?? name;
+                                      _userEmail = email;
+                                      _userPhotoUrl = data['user']['photo_url'];
+                                      _authProvider = 'email';
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('🎉 Account created successfully! Welcome, $_userName.'),
+                                        backgroundColor: const Color(0xFF10B981),
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(res['error'] ?? 'Registration failed.'), backgroundColor: Colors.red),
+                                    );
+                                  }
                                 } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Sign In failed. Incorrect email or password.'), backgroundColor: Colors.red),
-                                  );
+                                  final res = await ApiService.login(email, pass);
+                                  setState(() => _isAuthLoading = false);
+                                  if (res['success'] == true && res['data'] != null) {
+                                    final data = res['data'];
+                                    _saveAuthSession(data['access_token'], data['user']);
+                                    setState(() {
+                                      _isLoggedIn = true;
+                                      _userToken = data['access_token'];
+                                      _userName = data['user']['name'] ?? email.split('@')[0];
+                                      _userEmail = email;
+                                      _userPhotoUrl = data['user']['photo_url'];
+                                      _authProvider = 'email';
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('🎉 Welcome back, $_userName!'),
+                                        backgroundColor: const Color(0xFF10B981),
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(res['error'] ?? 'Incorrect email or password.'), backgroundColor: Colors.red),
+                                    );
+                                  }
                                 }
-                              }
-                            },
-                            child: Text(
-                              _isGateRegisterMode ? 'Create Account & Register' : 'Sign In to Account',
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                              },
+                              child: Text(
+                                _isGateRegisterMode ? 'Create Account & Register' : 'Sign In to Account',
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     );
                   },

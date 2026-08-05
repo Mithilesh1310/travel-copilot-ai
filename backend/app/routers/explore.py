@@ -1,14 +1,14 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional, Dict, Any, List
 
-from app.schemas import (
+from ..schemas import (
     ExploreRequest,
     ReplanRequest,
     ExploreItineraryResponse,
     EmergencyLocation,
     ExploreMission,
 )
-from app.services.smart_explore_service import SmartExploreService
+from ..services.smart_explore_service import SmartExploreService
 
 router = APIRouter(prefix="/api/explore", tags=["AI Smart Explore Mode"])
 

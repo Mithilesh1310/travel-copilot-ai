@@ -10,53 +10,6 @@ from ..services.agents import TravelAgentSystem
 router = APIRouter()
 agent_system = TravelAgentSystem()
 
-# Helper for secure password hashing (SHA-256)
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
-
-@router.post("/auth/register", response_model=schemas.Token)
-def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user_data.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email is already registered")
-        
-    hashed = hash_password(user_data.password)
-    user = models.User(
-        email=user_data.email,
-        hashed_password=hashed,
-        name=user_data.name,
-        preferences="{}"
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    
-    # Generate token
-    token_str = f"mock-token-{user.id}"
-    return {
-        "access_token": token_str,
-        "token_type": "bearer",
-        "user": user
-    }
-
-@router.post("/auth/login", response_model=schemas.Token)
-def login(login_data: schemas.UserLogin, db: Session = Depends(get_db)):
-    hashed = hash_password(login_data.password)
-    user = db.query(models.User).filter(
-        models.User.email == login_data.email,
-        models.User.hashed_password == hashed
-    ).first()
-    
-    if not user:
-        raise HTTPException(status_code=400, detail="Invalid email or password")
-        
-    token_str = f"mock-token-{user.id}"
-    return {
-        "access_token": token_str,
-        "token_type": "bearer",
-        "user": user
-    }
-
 @router.put("/user/preferences", response_model=schemas.UserResponse)
 def update_preferences(pref_data: schemas.UserPreferencesUpdate, user_id: int = 1, db: Session = Depends(get_db)):
     # Hardcoded user_id=1 for ease of use in demo profiles

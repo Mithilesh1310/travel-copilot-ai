@@ -10,8 +10,11 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     name = Column(String, nullable=False)
+    photo_url = Column(String, nullable=True)
+    auth_provider = Column(String, default="email")
     preferences = Column(Text, default="{}") # JSON block for travel preferences
-    created_at = Column(DateTime, default=datetime.datetime.now(datetime.timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    last_login = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")

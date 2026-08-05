@@ -25,8 +25,11 @@ class UserPreferencesUpdate(BaseModel):
 
 class UserResponse(UserBase):
     id: int
-    preferences: str
-    created_at: datetime
+    photo_url: Optional[str] = None
+    auth_provider: Optional[str] = "email"
+    preferences: Optional[str] = "{}"
+    created_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
