@@ -356,10 +356,18 @@ class SmartExploreService:
 
     @classmethod
     def fetch_real_location_pois(cls, location_name: str, base_lat: float, base_lng: float) -> List[Dict[str, Any]]:
-        """Queries real factual local POIs around coordinates from Nominatim/OpenStreetMap with disaggregated search"""
+        """Queries real factual local POIs around coordinates from Nominatim/OpenStreetMap with disaggregated search and spatial distance validation"""
         import urllib.request
         import urllib.parse
         import json
+        import math
+
+        def haversine_km(lat1, lon1, lat2, lon2):
+            R = 6371.0
+            dlat = math.radians(lat2 - lat1)
+            dlon = math.radians(lon2 - lon1)
+            a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+            return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
         pois = []
         loc_lower = location_name.lower()
@@ -369,22 +377,33 @@ class SmartExploreService:
         if not district_query or len(district_query) < 2:
             district_query = location_name.split(',')[0].strip()
 
-        search_terms = [
-            f"temple in {district_query}",
-            f"ashram in {district_query}",
-            f"mandir in {district_query}",
-            f"ghat in {district_query}",
-            f"lake in {district_query}",
-            f"park in {district_query}",
-            f"bazaar in {district_query}",
-            f"market in {district_query}",
-        ]
+        indian_keywords = ['ballia', 'uttar pradesh', 'up', 'bihar', 'kanpur', 'mau', 'ghosi', 'varanasi', 'lucknow', 'patna', 'gorakhpur', 'agra', 'jaipur', 'mumbai', 'delhi', 'india']
+        is_indian = any(kw in loc_lower for kw in indian_keywords)
+
+        if is_indian:
+            search_terms = [
+                f"temple in {district_query}",
+                f"monument in {district_query}",
+                f"park in {district_query}",
+                f"bazaar in {district_query}",
+                f"lake in {district_query}",
+            ]
+            cc_param = "&countrycodes=in"
+        else:
+            search_terms = [
+                f"top attraction in {district_query}",
+                f"famous museum in {district_query}",
+                f"monument in {district_query}",
+                f"park in {district_query}",
+                f"historic square in {district_query}",
+            ]
+            cc_param = ""
 
         seen_names = set()
         idx = 1
         for term in search_terms:
             try:
-                url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(term)}&format=json&limit=3&countrycodes=in"
+                url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(term)}&format=json&limit=3{cc_param}"
                 req = urllib.request.Request(url, headers={'User-Agent': 'TravelCopilotAI/2.0'})
                 with urllib.request.urlopen(req, timeout=2.5) as response:
                     data = json.loads(response.read().decode('utf-8'))
@@ -393,16 +412,24 @@ class SmartExploreService:
                             raw_name = item.get('display_name', '').split(',')[0].strip()
                             clean_key = raw_name.lower()
                             if clean_key not in seen_names and len(raw_name) > 2 and 'pakistan' not in item.get('display_name', '').lower():
-                                seen_names.add(clean_key)
                                 poi_lat = float(item['lat'])
                                 poi_lng = float(item['lon'])
-                                
-                                category = "Religious & Spiritual Shrine"
-                                if 'park' in term or 'lake' in term:
+
+                                # STRICT SPATIAL RADIUS GUARD: Must be within 35km of destination center
+                                dist_km = haversine_km(base_lat, base_lng, poi_lat, poi_lng)
+                                if dist_km > 35.0:
+                                    logger.warning(f"Discarded distant POI '{raw_name}' ({dist_km:.1f}km from base {base_lat}, {base_lng})")
+                                    continue
+
+                                seen_names.add(clean_key)
+                                category = "Historical Monument"
+                                if 'park' in term or 'lake' in term or 'garden' in raw_name.lower():
                                     category = "Nature & Botanical"
-                                elif 'bazaar' in term or 'market' in term:
+                                elif 'bazaar' in term or 'market' in term or 'square' in raw_name.lower():
                                     category = "Cultural Market"
-                                elif 'ghat' in term or 'mandir' in term or 'temple' in term:
+                                elif 'museum' in term or 'museum' in raw_name.lower():
+                                    category = "Museum & Arts"
+                                elif 'temple' in term or 'mandir' in term or 'shrine' in raw_name.lower():
                                     category = "Religious & Spiritual Shrine"
 
                                 pois.append({
@@ -423,13 +450,13 @@ class SmartExploreService:
                                     "description": f"Historic and revered local landmark situated in the {district_query.title()} region.",
                                     "history_summary": f"Deeply cherished heritage site integral to the culture of {district_query.title()}.",
                                     "facts": ["Verified Factual Local Site", "Community Heritage Landmark"],
-                                    "architecture": "Traditional Indian Regional Architecture",
-                                    "cultural_importance": f"Cultural and spiritual center of {district_query.title()}.",
+                                    "architecture": "Regional Heritage Architecture",
+                                    "cultural_importance": f"Cultural and historic pride of {district_query.title()}.",
                                     "entry_fee": "Free Entry",
                                     "opening_hours": "06:00 AM - 08:30 PM",
                                     "best_visiting_time": "Morning / Evening",
-                                    "photo_tips": "Capture authentic morning architecture and vibrant local life.",
-                                    "safety_tips": "Respect local sanctuary guidelines; keep cash for local artisans.",
+                                    "photo_tips": "Capture authentic architecture and vibrant local life.",
+                                    "safety_tips": "Respect local guidelines; keep cash for local artisans.",
                                     "accessibility": "Paved level pathways.",
                                     "nearby_amenities": {"toilets": True, "cafes": True, "parking": True, "metro": False},
                                     "spending_estimate": {"entry": 0.0, "refreshments": 50.0}
@@ -766,7 +793,216 @@ class SmartExploreService:
         interests = [i.lower() for i in req.get("interests", [])]
 
         # Generate city-specific real sightseeing attraction stops
-        if "mumbai" in loc_lower or "bombay" in loc_lower:
+        if "paris" in loc_lower:
+            candidate_stops = [
+                {
+                    "id": "par_1",
+                    "name": "Eiffel Tower & Champ de Mars Promenade",
+                    "category": "Historical Monument",
+                    "lat": 48.8584,
+                    "lng": 2.2945,
+                    "address": "Champ de Mars, 5 Av. Anatole France, 75007 Paris, France",
+                    "visit_duration_mins": 90,
+                    "estimated_cost": 25.0,
+                    "travel_time_from_prev_mins": 0,
+                    "travel_mode_from_prev": "Walking",
+                    "scheduled_time": "09:00 AM",
+                    "ai_reasoning": "Global architectural icon offering panoramic city views over Paris and the Seine river.",
+                    "ai_score": 99,
+                    "image_url": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
+                    "description": "330-meter wrought-iron lattice tower built for the 1889 World's Fair.",
+                    "history_summary": "Designed by Gustave Eiffel and completed in 1889 to celebrate the French Revolution centennial.",
+                    "facts": ["330m Tall Iron Monument", "20,000 Sparkling Lights at Night", "Champ de Mars Park"],
+                    "architecture": "19th Century Wrought Iron Lattice Structure",
+                    "cultural_importance": "The ultimate cultural symbol of Paris and France.",
+                    "entry_fee": "€25.00 (Summit Lift)",
+                    "opening_hours": "09:30 AM - 11:45 PM",
+                    "best_visiting_time": "Morning 09:00 AM or Sunset",
+                    "photo_tips": "Shoot from Trocadéro Gardens across the Seine for iconic framed views.",
+                    "safety_tips": "Watch for pickpockets in Trocadéro and Champ de Mars plazas.",
+                    "accessibility": "Wheelchair accessible elevators to 1st and 2nd floors.",
+                    "nearby_amenities": {"toilets": True, "cafes": True, "parking": True, "metro": True},
+                    "spending_estimate": {"ticket": 25.0, "café": 10.0}
+                },
+                {
+                    "id": "par_2",
+                    "name": "Louvre Museum & Glass Pyramid Courtyard",
+                    "category": "Museum & Arts",
+                    "lat": 48.8606,
+                    "lng": 2.3376,
+                    "address": "Rue de Rivoli, 75001 Paris, France",
+                    "visit_duration_mins": 120,
+                    "estimated_cost": 17.0,
+                    "travel_time_from_prev_mins": 15,
+                    "travel_mode_from_prev": "Metro",
+                    "scheduled_time": "11:00 AM",
+                    "ai_reasoning": "World's largest art museum housing the Mona Lisa, Venus de Milo, and Winged Victory.",
+                    "ai_score": 98,
+                    "image_url": "https://images.unsplash.com/photo-1499856871958-5b9627545d1a",
+                    "description": "Historic royal palace turned iconic museum exhibiting over 38,000 works of fine art.",
+                    "history_summary": "Originally constructed as a 12th-century fortress, converted to a public museum in 1793.",
+                    "facts": ["Mona Lisa by Leonardo da Vinci", "I.M. Pei Glass Pyramid", "380,000+ Collection Objects"],
+                    "architecture": "French Renaissance Palace with Modern Glass Pyramid Courtyard",
+                    "cultural_importance": "Premier art repository and cultural pride of France.",
+                    "entry_fee": "€17.00 (General Admission)",
+                    "opening_hours": "09:00 AM - 06:00 PM (Closed Tuesdays)",
+                    "best_visiting_time": "Late Morning",
+                    "photo_tips": "Photograph the Glass Pyramid reflection in the courtyard fountains.",
+                    "safety_tips": "Book timed entry tickets online in advance.",
+                    "accessibility": "Step-free elevator access throughout galleries.",
+                    "nearby_amenities": {"toilets": True, "cafes": True, "parking": True, "metro": True},
+                    "spending_estimate": {"ticket": 17.0, "lunch": 20.0}
+                },
+                {
+                    "id": "par_3",
+                    "name": "Cathédrale Notre-Dame de Paris & Île de la Cité",
+                    "category": "Historical Monument",
+                    "lat": 48.8530,
+                    "lng": 2.3499,
+                    "address": "6 Parvis Notre-Dame - Pl. Jean-Paul II, 75004 Paris, France",
+                    "visit_duration_mins": 60,
+                    "estimated_cost": 0.0,
+                    "travel_time_from_prev_mins": 12,
+                    "travel_mode_from_prev": "Walking",
+                    "scheduled_time": "01:30 PM",
+                    "ai_reasoning": "Medieval Catholic cathedral famous for Gothic flying buttresses, rose windows, and gargoyles.",
+                    "ai_score": 96,
+                    "image_url": "https://images.unsplash.com/photo-1548013146-72479768bada",
+                    "description": "Masterpiece of French Gothic architecture situated on the Île de la Cité island in the Seine.",
+                    "history_summary": "Construction began in 1163 under Bishop Maurice de Sully and completed in 1345.",
+                    "facts": ["Gothic Rose Windows", "Gargoyles & Chimeras", "Île de la Cité Island"],
+                    "architecture": "French Gothic Architecture with Flying Buttresses",
+                    "cultural_importance": "Spiritual heart of Paris and literary inspiration for Victor Hugo.",
+                    "entry_fee": "Free Parvis Access",
+                    "opening_hours": "08:00 AM - 07:00 PM",
+                    "best_visiting_time": "Early Afternoon",
+                    "photo_tips": "Shoot from Pont de l'Archevêché for stunning river and buttress views.",
+                    "safety_tips": "Maintain decorum around parvis plaza.",
+                    "accessibility": "Wheelchair accessible plaza level.",
+                    "nearby_amenities": {"toilets": True, "cafes": True, "parking": False, "metro": True},
+                    "spending_estimate": {"souvenir": 10.0}
+                },
+                {
+                    "id": "par_4",
+                    "name": "Arc de Triomphe & Champs-Élysées Boulevard",
+                    "category": "Historical Monument",
+                    "lat": 48.8738,
+                    "lng": 2.2950,
+                    "address": "Pl. Charles de Gaulle, 75008 Paris, France",
+                    "visit_duration_mins": 75,
+                    "estimated_cost": 13.0,
+                    "travel_time_from_prev_mins": 15,
+                    "travel_mode_from_prev": "Metro",
+                    "scheduled_time": "03:00 PM",
+                    "ai_reasoning": "Monumental triumphal arch honoring French military victories at the head of Champs-Élysées.",
+                    "ai_score": 95,
+                    "image_url": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
+                    "description": "50-meter triumphal arch commissioned by Napoleon standing at the center of 12 radiating avenues.",
+                    "history_summary": "Commissioned in 1806 following Napoleon's victory at Austerlitz.",
+                    "facts": ["Tomb of the Unknown Soldier", "Eternal Flame Relighting", "12 Radiating Avenues"],
+                    "architecture": "Neoclassical Triumphal Arch",
+                    "cultural_importance": "National monument of French military memory and national ceremonies.",
+                    "entry_fee": "€13.00 (Rooftop Terrace)",
+                    "opening_hours": "10:00 AM - 10:30 PM",
+                    "best_visiting_time": "Late Afternoon",
+                    "photo_tips": "Use the pedestrian island on Champs-Élysées to frame the grand arch.",
+                    "safety_tips": "Use the underground pedestrian tunnel to reach the arch safely; do not cross the roundabout.",
+                    "accessibility": "Elevator available for visitors needing assistance.",
+                    "nearby_amenities": {"toilets": True, "cafes": True, "parking": True, "metro": True},
+                    "spending_estimate": {"terrace_ticket": 13.0, "pastry": 8.0}
+                },
+                {
+                    "id": "par_5",
+                    "name": "Sacré-Cœur Basilica & Montmartre Artists' Hill",
+                    "category": "Religious & Spiritual Shrine",
+                    "lat": 48.8867,
+                    "lng": 2.3431,
+                    "address": "35 Rue du Chevalier de la Barre, 75018 Paris, France",
+                    "visit_duration_mins": 90,
+                    "estimated_cost": 0.0,
+                    "travel_time_from_prev_mins": 20,
+                    "travel_mode_from_prev": "Metro",
+                    "scheduled_time": "05:00 PM",
+                    "ai_reasoning": "White travertine basilica perched on Montmartre hill offering sunset views over all Paris rooftops.",
+                    "ai_score": 94,
+                    "image_url": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34",
+                    "description": "Romano-Byzantine white dome basilica overlooking the bohemian village of Montmartre.",
+                    "history_summary": "Built between 1875 and 1914 as a national penance sanctuary following the Franco-Prussian War.",
+                    "facts": ["Highest Point in Paris (Montmartre)", "Travertine Stone Self-Cleaning Dome", "Place du Tertre Artists"],
+                    "architecture": "Romano-Byzantine Architecture",
+                    "cultural_importance": "Spiritual beacon and bohemian artistic center of Paris.",
+                    "entry_fee": "Free Basilica Entry",
+                    "opening_hours": "06:30 AM - 10:30 PM",
+                    "best_visiting_time": "Sunset Golden Hour",
+                    "photo_tips": "Sit on the grand front steps to capture panoramic Paris city light up at dusk.",
+                    "safety_tips": "Be wary of street bracelet hawkers at the foot of the Montmartre stairs.",
+                    "accessibility": "Funicular cable car available from street level.",
+                    "nearby_amenities": {"toilets": True, "cafes": True, "parking": False, "metro": True},
+                    "spending_estimate": {"entry": 0.0, "crepe": 6.0}
+                }
+            ]
+        elif "london" in loc_lower:
+            candidate_stops = [
+                {
+                    "id": "lon_1",
+                    "name": "Big Ben & Palace of Westminster",
+                    "category": "Historical Monument",
+                    "lat": 51.5007,
+                    "lng": -0.1246,
+                    "address": "Westminster, London SW1A 0AA, UK",
+                    "visit_duration_mins": 60,
+                    "estimated_cost": 0.0,
+                    "travel_time_from_prev_mins": 0,
+                    "travel_mode_from_prev": "Walking",
+                    "scheduled_time": "09:00 AM",
+                    "ai_reasoning": "Iconic Elizabeth Tower and Gothic Parliament building overlooking River Thames.",
+                    "ai_score": 99,
+                    "image_url": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad",
+                    "description": "Grand Gothic Revival palace housing the UK Parliament and famous Big Ben bell tower.",
+                    "history_summary": "Rebuilt after the 1834 fire by Sir Charles Barry and Augustus Pugin.",
+                    "facts": ["Elizabeth Tower", "Great Bell Big Ben (13.7 tonnes)", "Houses of Parliament"],
+                    "architecture": "Perpendicular Gothic Revival",
+                    "cultural_importance": "Political heart and iconic national symbol of Great Britain.",
+                    "entry_fee": "Free Exterior View",
+                    "opening_hours": "24 Hours Open",
+                    "best_visiting_time": "Morning",
+                    "photo_tips": "Shoot from Westminster Bridge for classic red telephone box framing.",
+                    "safety_tips": "Stay on pedestrian sidewalks near bridge traffic.",
+                    "accessibility": "Step-free pavement walkways.",
+                    "nearby_amenities": {"toilets": True, "cafes": True, "parking": False, "metro": True},
+                    "spending_estimate": {"coffee": 4.0}
+                },
+                {
+                    "id": "lon_2",
+                    "name": "Tower Bridge & Tower of London",
+                    "category": "Historical Monument",
+                    "lat": 51.5055,
+                    "lng": -0.0754,
+                    "address": "Tower Bridge Rd, London SE1 2UP, UK",
+                    "visit_duration_mins": 90,
+                    "estimated_cost": 12.0,
+                    "travel_time_from_prev_mins": 15,
+                    "travel_mode_from_prev": "Tube",
+                    "scheduled_time": "10:30 AM",
+                    "ai_reasoning": "Victorian bascule bridge and 1,000-year-old medieval royal fortress holding Crown Jewels.",
+                    "ai_score": 97,
+                    "image_url": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad",
+                    "description": "Historic suspension bridge with glass walkway suspended over River Thames.",
+                    "history_summary": "Opened in 1894, combining Victorian Gothic architecture with hydraulic bascule machinery.",
+                    "facts": ["Glass High Level Walkway", "Hydraulic Engine Rooms", "Crown Jewels Sanctuary"],
+                    "architecture": "Victorian Gothic Architecture",
+                    "cultural_importance": "World-famous symbol of London maritime heritage.",
+                    "entry_fee": "£12.30 (Glass Walkway)",
+                    "opening_hours": "09:30 AM - 06:00 PM",
+                    "best_visiting_time": "Mid-Morning",
+                    "photo_tips": "Capture bridge opening schedule from Butler's Wharf promenade.",
+                    "safety_tips": "Keep left on bridge walkways.",
+                    "accessibility": "Lifts to high-level glass walkways.",
+                    "nearby_amenities": {"toilets": True, "cafes": True, "parking": True, "metro": True},
+                    "spending_estimate": {"ticket": 12.3, "tea": 4.5}
+                }
+            ]
+        elif "mumbai" in loc_lower or "bombay" in loc_lower:
             candidate_stops = [
                 {
                     "id": "mum_1",
