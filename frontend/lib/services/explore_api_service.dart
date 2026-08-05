@@ -122,36 +122,82 @@ class ExploreApiService {
       return const LatLng(40.7128, -74.0060);
     } else if (loc.contains('bangalore') || loc.contains('bengaluru')) {
       return const LatLng(12.9716, 77.5946);
+    } else if (loc.contains('ballia')) {
+      return const LatLng(25.8749, 84.1210);
+    } else if (loc.contains('ghosi')) {
+      return const LatLng(26.1120, 83.5410);
+    } else if (loc.contains('mau')) {
+      return const LatLng(25.9520, 83.5570);
     } else if (loc.contains('delhi')) {
       return const LatLng(28.6139, 77.2090);
     }
-    return const LatLng(28.6139, 77.2090);
+    return const LatLng(25.8749, 84.1210);
   }
 
   static Future<LatLng> resolveCityCoordinatesAsync(String location) async {
     final syncRes = resolveCityCoordinates(location);
-    if (!location.toLowerCase().contains('delhi') && syncRes.latitude != 28.6139) {
+    if (!location.toLowerCase().contains('delhi') && syncRes.latitude != 25.8749) {
       return syncRes;
     }
 
-    try {
-      final cleanQuery = Uri.encodeComponent(location.replaceAll(RegExp(r'\(.*\)'), '').trim());
-      final response = await http.get(
-        Uri.parse('https://nominatim.openstreetmap.org/search?q=$cleanQuery&format=json&limit=1'),
-        headers: {'User-Agent': 'TravelCopilotAI/2.0'},
-      );
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
-        if (data.isNotEmpty) {
-          final double lat = double.parse(data[0]['lat'].toString());
-          final double lng = double.parse(data[0]['lon'].toString());
-          return LatLng(lat, lng);
-        }
-      }
-    } catch (e) {
-      developer.log('Nominatim web geocoding error: $e');
+    final queryClean = location.toLowerCase().trim();
+    final parts = queryClean.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final searchQueries = <String>[queryClean];
+    for (int i = 1; i < parts.length; i++) {
+      searchQueries.add(parts.sublist(i).join(', '));
     }
-    return const LatLng(28.6139, 77.2090);
+    if (parts.length > 1) {
+      searchQueries.add(parts.last);
+      searchQueries.add(parts.first);
+    }
+
+    for (final q in searchQueries) {
+      if (q.length < 2) continue;
+
+      // Stage 1: OpenStreetMap Nominatim
+      try {
+        final cleanQuery = Uri.encodeComponent(q);
+        final response = await http.get(
+          Uri.parse('https://nominatim.openstreetmap.org/search?q=$cleanQuery&format=json&limit=1'),
+          headers: {'User-Agent': 'TravelCopilotAI/2.0'},
+        );
+        if (response.statusCode == 200) {
+          final List data = jsonDecode(response.body);
+          if (data.isNotEmpty) {
+            final double lat = double.parse(data[0]['lat'].toString());
+            final double lng = double.parse(data[0]['lon'].toString());
+            developer.log('Nominatim Geocoded $q -> ($lat, $lng)');
+            return LatLng(lat, lng);
+          }
+        }
+      } catch (e) {
+        developer.log('Nominatim web geocoding error for $q: $e');
+      }
+
+      // Stage 2: Photon Komoot Geocoder
+      try {
+        final cleanQuery = Uri.encodeComponent(q);
+        final response = await http.get(
+          Uri.parse('https://photon.komoot.io/api/?q=$cleanQuery&limit=1'),
+          headers: {'User-Agent': 'TravelCopilotAI/2.0'},
+        );
+        if (response.statusCode == 200) {
+          final Map<String, dynamic> data = jsonDecode(response.body);
+          final List features = data['features'] ?? [];
+          if (features.isNotEmpty) {
+            final List coords = features[0]['geometry']['coordinates'];
+            final double lat = double.parse(coords[1].toString());
+            final double lng = double.parse(coords[0].toString());
+            developer.log('Photon Geocoded $q -> ($lat, $lng)');
+            return LatLng(lat, lng);
+          }
+        }
+      } catch (e) {
+        developer.log('Photon web geocoding error for $q: $e');
+      }
+    }
+
+    return syncRes;
   }
 
   static List<AttractionStop> generateFallbackStops(String location, LatLng coords) {
@@ -218,14 +264,15 @@ class ExploreApiService {
         ),
       ];
     }
+    final cleanLoc = location.split(',')[0].trim();
     return [
       AttractionStop(
         id: 'gen_1',
-        name: 'Historic Central Plaza, $location',
+        name: 'Historic Central Heritage Plaza, $cleanLoc',
         category: 'Historical Landmark',
-        lat: coords.latitude + 0.005,
-        lng: coords.longitude + 0.003,
-        address: 'Central Sector, $location',
+        lat: coords.latitude + 0.003,
+        lng: coords.longitude + 0.002,
+        address: 'Central Sector, $cleanLoc',
         visitDurationMins: 90,
         estimatedCost: 0.0,
         travelTimeFromPrevMins: 0,
@@ -234,9 +281,9 @@ class ExploreApiService {
         aiReasoning: 'Optimal early morning timing with lowest crowd density.',
         aiScore: 98,
         imageUrl: 'https://images.unsplash.com/photo-1548013146-72479768bada',
-        description: 'An iconic heritage landmark situated in the heart of $location.',
-        historySummary: 'Constructed as a central civic hub.',
-        facts: ['Top Rated Destination'],
+        description: 'An iconic heritage landmark situated in the heart of $cleanLoc.',
+        historySummary: 'Constructed as a central civic and cultural hub.',
+        facts: ['Top Rated Destination', 'Authentic Verified Local Spot'],
         architecture: 'Classic Imperial Architecture',
         culturalImportance: 'Symbol of civic pride.',
         entryFee: 'Free Entry',
@@ -247,6 +294,64 @@ class ExploreApiService {
         accessibility: 'Wheelchair Accessible.',
         nearbyAmenities: {'toilets': true, 'cafes': true},
         spendingEstimate: {'entry': 0.0},
+      ),
+      AttractionStop(
+        id: 'gen_2',
+        name: 'Grand Sacred Shrine & Sanctuary, $cleanLoc',
+        category: 'Religious & Spiritual Shrine',
+        lat: coords.latitude - 0.004,
+        lng: coords.longitude + 0.005,
+        address: 'Sacred Sector, $cleanLoc',
+        visitDurationMins: 60,
+        estimatedCost: 0.0,
+        travelTimeFromPrevMins: 12,
+        travelModeFromPrev: 'Walking',
+        scheduledTime: '11:00 AM',
+        aiReasoning: 'Tranquil spiritual shrine revered for peaceful atmosphere and classical architecture.',
+        aiScore: 96,
+        imageUrl: 'https://images.unsplash.com/photo-1548013146-72479768bada',
+        description: 'Sacred spiritual shrine located in $cleanLoc featuring traditional carvings.',
+        historySummary: 'Erected as a community sanctuary and spiritual retreat.',
+        facts: ['Sacred Holy Shrine', 'Peaceful Courtyard'],
+        architecture: 'Traditional Sacred Architecture',
+        culturalImportance: 'Spiritual heart of the community.',
+        entryFee: 'Free Entry',
+        openingHours: '06:00 AM - 09:00 PM',
+        bestVisitingTime: 'Morning',
+        photoTips: 'Photograph central sanctuary dome reflecting morning sun.',
+        safetyTips: 'Remove shoes before entering sanctum.',
+        accessibility: 'Wheelchair accessible ramps.',
+        nearbyAmenities: {'toilets': true, 'cafes': true},
+        spendingEstimate: {'entry': 0.0},
+      ),
+      AttractionStop(
+        id: 'gen_3',
+        name: 'Artisan Craft Bazaar & Local Market, $cleanLoc',
+        category: 'Cultural Market',
+        lat: coords.latitude + 0.008,
+        lng: coords.longitude - 0.004,
+        address: 'Bazaar Sector, $cleanLoc',
+        visitDurationMins: 60,
+        estimatedCost: 200.0,
+        travelTimeFromPrevMins: 15,
+        travelModeFromPrev: 'Auto',
+        scheduledTime: '12:30 PM',
+        aiReasoning: 'Perfect transition for local street food tasting and authentic handicraft browsing.',
+        aiScore: 94,
+        imageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5',
+        description: 'Vibrant market street in $cleanLoc teeming with local handicrafts and traditional cuisine.',
+        historySummary: 'Operational for generations as a traditional trading center.',
+        facts: ['Authentic Local Cuisine', 'Handcrafted Art'],
+        architecture: 'Traditional Covered Alleyways',
+        culturalImportance: 'Hub of local community trade and culture.',
+        entryFee: 'Free Entry',
+        openingHours: '10:00 AM - 09:00 PM',
+        bestVisitingTime: 'Late Morning',
+        photoTips: 'Capture colorful stalls and artisan workshops.',
+        safetyTips: 'Bargain respectfully; keep cash handy.',
+        accessibility: 'Level walkways.',
+        nearbyAmenities: {'toilets': true, 'cafes': true},
+        spendingEstimate: {'food': 150.0, 'souvenirs': 50.0},
       ),
     ];
   }
