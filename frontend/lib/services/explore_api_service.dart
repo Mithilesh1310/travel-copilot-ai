@@ -7,6 +7,54 @@ import '../models/explore_models.dart';
 class ExploreApiService {
   static const String baseUrl = 'http://127.0.0.1:8000/api/explore';
 
+  static Future<Map<String, dynamic>> fetchLiveGpsLocation() async {
+    try {
+      final response = await http.get(Uri.parse('https://ipapi.co/json/')).timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        if (data['latitude'] != null && data['longitude'] != null) {
+          final double lat = double.parse(data['latitude'].toString());
+          final double lng = double.parse(data['longitude'].toString());
+          final String city = data['city']?.toString() ?? data['region']?.toString() ?? 'Kanpur';
+          final String region = data['region']?.toString() ?? 'Uttar Pradesh';
+          return {
+            'lat': lat,
+            'lng': lng,
+            'location_name': '$city, $region',
+          };
+        }
+      }
+    } catch (e) {
+      developer.log('IP Geolocation error: $e');
+    }
+
+    try {
+      final response = await http.get(Uri.parse('http://ip-api.com/json/')).timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        if (data['lat'] != null && data['lon'] != null) {
+          final double lat = double.parse(data['lat'].toString());
+          final double lng = double.parse(data['lon'].toString());
+          final String city = data['city']?.toString() ?? data['regionName']?.toString() ?? 'Kanpur';
+          final String region = data['regionName']?.toString() ?? 'Uttar Pradesh';
+          return {
+            'lat': lat,
+            'lng': lng,
+            'location_name': '$city, $region',
+          };
+        }
+      }
+    } catch (e) {
+      developer.log('IP-API Geolocation error: $e');
+    }
+
+    return {
+      'lat': 26.4674,
+      'lng': 80.2078,
+      'location_name': 'PSIT Kanpur, Uttar Pradesh',
+    };
+  }
+
   static Future<Map<String, dynamic>> fetchApiStatus() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/status'));

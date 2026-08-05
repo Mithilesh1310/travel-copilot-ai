@@ -207,6 +207,40 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
         _isExploreLoading = false;
         if (itinerary.stops.isNotEmpty) {
           _exploreMapCenter = LatLng(itinerary.stops[0].lat, itinerary.stops[0].lng);
+        }
+      });
+    }
+  }
+
+  void _handleLiveGpsClick() async {
+    setState(() => _isExploreLoading = true);
+    final gpsResult = await ExploreApiService.fetchLiveGpsLocation();
+    final String locName = gpsResult['location_name'] ?? 'PSIT Kanpur, Uttar Pradesh';
+    final double lat = (gpsResult['lat'] as num?)?.toDouble() ?? 26.4674;
+    final double lng = (gpsResult['lng'] as num?)?.toDouble() ?? 80.2078;
+
+    if (mounted) {
+      setState(() {
+        _exploreLocationController.text = 'Live GPS: $locName';
+        _exploreMapCenter = LatLng(lat, lng);
+      });
+    }
+
+    final itinerary = await ExploreApiService.planSightseeing(
+      location: locName,
+      lat: lat,
+      lng: lng,
+      availableHours: _exploreHours,
+      budget: _exploreBudget,
+      interests: _selectedExploreInterests,
+    );
+
+    if (mounted) {
+      setState(() {
+        _exploreItinerary = itinerary;
+        _isExploreLoading = false;
+        if (itinerary.stops.isNotEmpty) {
+          _exploreMapCenter = LatLng(itinerary.stops[0].lat, itinerary.stops[0].lng);
         } else {
           _exploreMapCenter = LatLng(itinerary.lat, itinerary.lng);
         }
@@ -4546,13 +4580,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _exploreLocationController.text = 'Live GPS: Red Fort, Delhi';
-                          _exploreMapCenter = const LatLng(28.6562, 77.2410);
-                        });
-                        _handlePlanExplore();
-                      },
+                      onPressed: _handleLiveGpsClick,
                       icon: const Icon(Icons.my_location, size: 18),
                       label: const Text('Live GPS Location'),
                       style: ElevatedButton.styleFrom(
@@ -4584,13 +4612,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       ),
                       const SizedBox(width: 12),
                       ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _exploreLocationController.text = 'Live GPS: Red Fort, Delhi';
-                            _exploreMapCenter = const LatLng(28.6562, 77.2410);
-                          });
-                          _handlePlanExplore();
-                        },
+                        onPressed: _handleLiveGpsClick,
                         icon: const Icon(Icons.my_location, size: 18),
                         label: const Text('Live GPS'),
                         style: ElevatedButton.styleFrom(
