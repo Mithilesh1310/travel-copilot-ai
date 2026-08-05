@@ -230,7 +230,71 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     }
   }
 
-  void _performGoogleSignIn() {
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile', 'openid'],
+  );
+
+  void _performGoogleSignIn() async {
+    setState(() => _isAuthLoading = true);
+    try {
+      final account = await _googleSignIn.signIn();
+      if (account != null) {
+        final auth = await account.authentication;
+        final res = await ApiService.googleLogin(
+          email: account.email,
+          name: account.displayName ?? account.email.split('@')[0],
+          photoUrl: account.photoUrl,
+          idToken: auth.idToken,
+          googleId: account.id,
+        );
+
+        if (mounted) {
+          if (res['success'] == true && res['data'] != null) {
+            final data = res['data'];
+            _saveAuthSession(data['access_token'], data['user']);
+            setState(() {
+              _isAuthLoading = false;
+              _isLoggedIn = true;
+              _userToken = data['access_token'];
+              _userName = data['user']['name'] ?? account.displayName ?? account.email.split('@')[0];
+              _userEmail = data['user']['email'] ?? account.email;
+              _userPhotoUrl = data['user']['photo_url'] ?? account.photoUrl;
+              _authProvider = 'google';
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('🌐 Authenticated with Google! Welcome back, $_userName.'),
+                backgroundColor: const Color(0xFF10B981),
+              ),
+            );
+            return;
+          } else {
+            setState(() => _isAuthLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(res['error'] ?? 'Google authentication failed.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() => _isAuthLoading = false);
+          _showGoogleOAuthInputDialog();
+        }
+      }
+    } catch (e) {
+      debugPrint('Google Sign-In Notice: $e');
+      if (mounted) {
+        setState(() => _isAuthLoading = false);
+        _showGoogleOAuthInputDialog();
+      }
+    }
+  }
+
+  void _showGoogleOAuthInputDialog() {
     final googleEmailController = TextEditingController(text: _authEmailController.text.trim());
     final googleNameController = TextEditingController(text: _authNameController.text.trim());
     bool isGoogleSubmitting = false;
@@ -5477,120 +5541,145 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Mode Selector (Sign In vs Sign Up)
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.black26,
-                            borderRadius: BorderRadius.circular(12),
+                        if (_isAuthLoading) ...[
+                          const SizedBox(height: 24),
+                          Container(
+                            padding: const EdgeInsets.all(32),
+                            decoration: BoxDecoration(
+                              color: Colors.black26,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.4)),
+                            ),
+                            child: const Column(
+                              children: [
+                                CircularProgressIndicator(color: Color(0xFF818CF8), strokeWidth: 3),
+                                SizedBox(height: 24),
+                                Text(
+                                  'Connecting to Google Identity Services...',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Verifying OAuth credentials & launching workspace session...',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                                ),
+                              ],
+                            ),
                           ),
-                          child: Row(
+                          const SizedBox(height: 24),
+                        ] else ...[
+                          // Mode Selector (Sign In vs Sign Up)
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black26,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setAuthGateState(() => _isGateRegisterMode = false),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: !_isGateRegisterMode ? const Color(0xFF6366F1) : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Center(
+                                        child: Text(
+                                          'Sign In',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setAuthGateState(() => _isGateRegisterMode = true),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: _isGateRegisterMode ? const Color(0xFF6366F1) : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Center(
+                                        child: Text(
+                                          'Sign Up',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Google Sign-In Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black87,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 30),
+                              label: const Text('Continue with Google', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              onPressed: _performGoogleSignIn,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Row(
                             children: [
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () => setAuthGateState(() => _isGateRegisterMode = false),
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: !_isGateRegisterMode ? const Color(0xFF6366F1) : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        'Sign In',
-                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                              Expanded(child: Divider(color: Colors.white24)),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 10),
+                                child: Text('OR CREDENTIALS', style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
                               ),
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () => setAuthGateState(() => _isGateRegisterMode = true),
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: _isGateRegisterMode ? const Color(0xFF6366F1) : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        'Sign Up',
-                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              Expanded(child: Divider(color: Colors.white24)),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 20),
+                          const SizedBox(height: 16),
 
-                        // Google Sign-In Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black87,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          if (_isGateRegisterMode) ...[
+                            TextField(
+                              controller: _authNameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Full Name',
+                                prefixIcon: Icon(Icons.person_outline),
+                                border: OutlineInputBorder(),
+                              ),
                             ),
-                            icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 30),
-                            label: const Text('Continue with Google', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                            onPressed: _isAuthLoading ? null : _performGoogleSignIn,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Row(
-                          children: [
-                            Expanded(child: Divider(color: Colors.white24)),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10),
-                              child: Text('OR CREDENTIALS', style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
-                            ),
-                            Expanded(child: Divider(color: Colors.white24)),
+                            const SizedBox(height: 12),
                           ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        if (_isGateRegisterMode) ...[
                           TextField(
-                            controller: _authNameController,
+                            controller: _authEmailController,
                             decoration: const InputDecoration(
-                              labelText: 'Full Name',
-                              prefixIcon: Icon(Icons.person_outline),
+                              labelText: 'Email Address',
+                              prefixIcon: Icon(Icons.email_outlined),
                               border: OutlineInputBorder(),
                             ),
                           ),
                           const SizedBox(height: 12),
-                        ],
-                        TextField(
-                          controller: _authEmailController,
-                          decoration: const InputDecoration(
-                            labelText: 'Email Address',
-                            prefixIcon: Icon(Icons.email_outlined),
-                            border: OutlineInputBorder(),
+                          TextField(
+                            controller: _authPasswordController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon: Icon(Icons.lock_outline),
+                              border: OutlineInputBorder(),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _authPasswordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Password',
-                            prefixIcon: Icon(Icons.lock_outline),
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                        if (_isAuthLoading)
-                          const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)))
-                        else
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -5685,6 +5774,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                               ),
                             ),
                           ),
+                        ],
                       ],
                     );
                   },
