@@ -136,8 +136,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
   // Auth state
   bool _isLoggedIn = false;
-  String _userName = 'Traveler';
-  String _userEmail = 'traveler@example.com';
+  String _userName = '';
+  String _userEmail = '';
   String? _userToken;
   String? _userPhotoUrl;
   String _authProvider = 'email';
@@ -216,8 +216,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
       setState(() {
         _isLoggedIn = false;
         _userToken = null;
-        _userName = 'Traveler';
-        _userEmail = 'traveler@example.com';
+        _userName = '';
+        _userEmail = '';
         _userPhotoUrl = null;
         _authProvider = 'email';
       });
@@ -3937,9 +3937,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
   // REAL AUTHENTICATION SYSTEM MODAL
   void _showAuthModal(BuildContext context) {
-    final emailController = TextEditingController(text: _userEmail);
-    final passwordController = TextEditingController(text: 'password123');
-    final nameController = TextEditingController(text: _userName);
+    final emailController = TextEditingController(text: _isLoggedIn ? _userEmail : '');
+    final passwordController = TextEditingController();
+    final nameController = TextEditingController(text: _isLoggedIn ? _userName : '');
     bool isRegister = false;
     bool isLoading = false;
 
@@ -3986,12 +3986,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                           icon: const Icon(Icons.logout, color: Colors.red),
                           label: const Text('Logout Session', style: TextStyle(color: Colors.red)),
                           onPressed: () {
-                            setState(() {
-                              _isLoggedIn = false;
-                              _userName = 'Guest';
-                              _userEmail = '';
-                              _userToken = null;
-                            });
+                            _handleLogout();
                             Navigator.pop(context);
                           },
                         ),
@@ -4038,12 +4033,23 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                           icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 30),
                           label: const Text('Continue with Google', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                           onPressed: () async {
+                            final email = emailController.text.trim();
+                            final name = nameController.text.trim();
+
+                            if (email.isEmpty || !email.contains('@')) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please enter your Google Email Address in the field below.'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              return;
+                            }
+
                             setModalState(() => isLoading = true);
-                            final email = emailController.text.trim().isNotEmpty ? emailController.text.trim() : 'user.google@gmail.com';
-                            final name = nameController.text.trim().isNotEmpty ? nameController.text.trim() : 'Google Traveler';
                             final res = await ApiService.googleLogin(
                               email: email,
-                              name: name,
+                              name: name.isNotEmpty ? name : email.split('@')[0],
                               googleId: 'google_id_${email.hashCode}',
                             );
                             setModalState(() => isLoading = false);
@@ -4053,7 +4059,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                               setState(() {
                                 _isLoggedIn = true;
                                 _userToken = data['access_token'];
-                                _userName = data['user']['name'] ?? name;
+                                _userName = data['user']['name'] ?? email.split('@')[0];
                                 _userEmail = data['user']['email'] ?? email;
                                 _userPhotoUrl = data['user']['photo_url'];
                                 _authProvider = 'google';
