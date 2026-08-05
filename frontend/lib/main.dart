@@ -760,35 +760,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 ),
             ],
           ),
-          const SizedBox(width: 4),
-          InkWell(
-            onTap: () => _showAuthModal(context),
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: isMobileScreen ? 6 : 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: inputSearchBg,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: inputSearchBorder),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: _isLoggedIn ? const Color(0xFF10B981) : const Color(0xFF6366F1),
-                    radius: 13,
-                    child: Text(
-                      _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
-                    ),
-                  ),
-                  if (!isMobileScreen) ...[
-                    const SizedBox(width: 8),
-                    Text(_isLoggedIn ? _userName : 'Sign In', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: titleTextColor)),
-                  ],
-                ],
-              ),
-            ),
-          ),
+          _buildUserAvatarMenu(context),
           const SizedBox(width: 12),
         ],
       ),
@@ -4031,6 +4003,173 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           const SizedBox(height: 4),
           Text('₹${amount.toInt()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUserAvatarMenu(BuildContext context) {
+    if (!_isLoggedIn) {
+      return ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF6366F1),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 2,
+        ),
+        icon: const Icon(Icons.login, size: 16),
+        label: const Text('Sign In / Register', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+        onPressed: () => _showAuthModal(context),
+      );
+    }
+
+    return PopupMenuButton<String>(
+      tooltip: 'Account Options',
+      offset: const Offset(0, 44),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: widget.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+      onSelected: (value) {
+        if (value == 'profile') {
+          _showAuthModal(context);
+        } else if (value == 'analytics') {
+          setState(() => _selectedIndex = 6);
+        } else if (value == 'logout') {
+          _handleLogout();
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          enabled: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: const Color(0xFF6366F1),
+                  backgroundImage: (_userPhotoUrl != null && _userPhotoUrl!.isNotEmpty)
+                      ? NetworkImage(_userPhotoUrl!)
+                      : null,
+                  child: (_userPhotoUrl == null || _userPhotoUrl!.isEmpty)
+                      ? Text(
+                          _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _userName.isNotEmpty ? _userName : 'Copilot Traveler',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: widget.isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        _userEmail,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: widget.isDarkMode ? Colors.white60 : Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _authProvider == 'google' ? '🌐 Google OAuth Verified' : '✉️ Email Account',
+                          style: const TextStyle(color: Color(0xFF10B981), fontSize: 9, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'profile',
+          child: Row(
+            children: [
+              Icon(Icons.person_outline, size: 18, color: Color(0xFF6366F1)),
+              SizedBox(width: 10),
+              Text('My Profile & Settings'),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'analytics',
+          child: Row(
+            children: [
+              Icon(Icons.eco_outlined, size: 18, color: Color(0xFF10B981)),
+              SizedBox(width: 10),
+              Text('CO2 Footprint & Analytics'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'logout',
+          child: Row(
+            children: [
+              Icon(Icons.logout, size: 18, color: Colors.redAccent),
+              SizedBox(width: 10),
+              Text('Logout Session', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: widget.isDarkMode ? const Color(0xFF1E293B) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: widget.isDarkMode ? const Color(0xFF334155) : Colors.grey.shade300,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 13,
+              backgroundColor: const Color(0xFF10B981),
+              backgroundImage: (_userPhotoUrl != null && _userPhotoUrl!.isNotEmpty)
+                  ? NetworkImage(_userPhotoUrl!)
+                  : null,
+              child: (_userPhotoUrl == null || _userPhotoUrl!.isEmpty)
+                  ? Text(
+                      _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _userName.isNotEmpty ? _userName.split(' ')[0] : 'Account',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: widget.isDarkMode ? Colors.white : Colors.black87,
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
