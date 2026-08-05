@@ -251,7 +251,7 @@ class SmartExploreService:
 
     @classmethod
     def resolve_location_coordinates(cls, location_name: str) -> tuple[float, float]:
-        """Resolves any city, village, or landmark name to exact (lat, lng) coordinates using multi-stage Nominatim + Photon APIs"""
+        """Resolves any city, village, or landmark name to exact (lat, lng) coordinates using multi-stage Nominatim + Photon APIs with regional validation"""
         loc_clean = location_name.lower().strip()
         cities = {
             "mumbai": (19.0760, 72.8777),
@@ -283,32 +283,51 @@ class SmartExploreService:
         import urllib.parse
         import json
 
-        # Build multi-stage search query list
+        # Detect regional Indian context
+        indian_keywords = ['ballia', 'uttar pradesh', 'up', 'bihar', 'kanpur', 'mau', 'ghosi', 'varanasi', 'lucknow', 'patna', 'gorakhpur', 'agra', 'jaipur', 'mumbai', 'delhi', 'india']
+        has_indian_kw = any(kw in loc_clean for kw in indian_keywords)
+
         clean_query = loc_clean.replace("1-click", "").replace("trail", "").strip()
         parts = [p.strip() for p in clean_query.split(',') if p.strip()]
-        search_queries = [clean_query]
+        
+        search_queries = []
+        if has_indian_kw and 'india' not in clean_query:
+            search_queries.append(f"{clean_query}, india")
+            if len(parts) > 1:
+                search_queries.append(f"{parts[-1]}, uttar pradesh, india")
+                search_queries.append(f"{parts[-1]}, india")
+
+        search_queries.append(clean_query)
         for i in range(1, len(parts)):
             search_queries.append(', '.join(parts[i:]))
         if len(parts) > 1:
             search_queries.append(parts[-1])
             search_queries.append(parts[0])
 
+        if 'ballia' in clean_query:
+            search_queries.append('ballia, uttar pradesh, india')
+
         for q in search_queries:
             if not q or len(q) < 2:
                 continue
-            # Stage 1: Nominatim API
+
+            # Stage 1: Nominatim API (with countrycodes=in if Indian context)
             try:
-                url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(q)}&format=json&limit=1"
+                cc_param = '&countrycodes=in' if has_indian_kw else ''
+                url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(q)}&format=json&limit=1{cc_param}"
                 req = urllib.request.Request(url, headers={'User-Agent': 'TravelCopilotAI/2.0'})
                 with urllib.request.urlopen(req, timeout=3) as response:
                     data = json.loads(response.read().decode('utf-8'))
                     if data and len(data) > 0:
+                        display = data[0].get('display_name', '')
+                        if has_indian_kw and ('pakistan' in display.lower() or 'bangladesh' in display.lower()):
+                            continue
                         lat = float(data[0]['lat'])
                         lon = float(data[0]['lon'])
                         logger.info(f"Nominatim Geocoded '{q}' -> ({lat}, {lon})")
                         return (lat, lon)
             except Exception as e:
-                logger.warning(f"Nominatim geocoding subquery '{q}' error: {e}")
+                logger.warning(f"Nominatim subquery '{q}' error: {e}")
 
             # Stage 2: Photon Komoot Geocoder API
             try:
@@ -318,12 +337,20 @@ class SmartExploreService:
                     data = json.loads(response.read().decode('utf-8'))
                     features = data.get('features', [])
                     if features and len(features) > 0:
+                        props = features[0]['properties']
+                        country = str(props.get('country', '')).lower()
+                        name = str(props.get('name', '')).lower()
+                        if has_indian_kw and ('pakistan' in country or 'pakistan' in name or country == 'pakistan'):
+                            continue
                         coords = features[0]['geometry']['coordinates']
                         lat, lon = float(coords[1]), float(coords[0])
                         logger.info(f"Photon Geocoded '{q}' -> ({lat}, {lon})")
                         return (lat, lon)
             except Exception as e:
-                logger.warning(f"Photon geocoding subquery '{q}' error: {e}")
+                logger.warning(f"Photon subquery '{q}' error: {e}")
+
+        if 'ballia' in loc_clean:
+            return (25.8749, 84.1210)
 
         return (28.6139, 77.2090)
 

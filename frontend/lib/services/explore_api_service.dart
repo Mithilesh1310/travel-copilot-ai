@@ -142,7 +142,20 @@ class ExploreApiService {
 
     final queryClean = location.toLowerCase().trim();
     final parts = queryClean.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    final searchQueries = <String>[queryClean];
+
+    final indianKeywords = ['ballia', 'uttar pradesh', 'up', 'bihar', 'kanpur', 'mau', 'ghosi', 'varanasi', 'lucknow', 'patna', 'gorakhpur', 'agra', 'jaipur', 'mumbai', 'delhi', 'india'];
+    final hasIndianKw = indianKeywords.any((kw) => queryClean.contains(kw));
+
+    final searchQueries = <String>[];
+    if (hasIndianKw && !queryClean.contains('india')) {
+      searchQueries.add('$queryClean, india');
+      if (parts.length > 1) {
+        searchQueries.add('${parts.last}, uttar pradesh, india');
+        searchQueries.add('${parts.last}, india');
+      }
+    }
+
+    searchQueries.add(queryClean);
     for (int i = 1; i < parts.length; i++) {
       searchQueries.add(parts.sublist(i).join(', '));
     }
@@ -151,19 +164,28 @@ class ExploreApiService {
       searchQueries.add(parts.first);
     }
 
+    if (queryClean.contains('ballia')) {
+      searchQueries.add('ballia, uttar pradesh, india');
+    }
+
     for (final q in searchQueries) {
       if (q.length < 2) continue;
 
       // Stage 1: OpenStreetMap Nominatim
       try {
         final cleanQuery = Uri.encodeComponent(q);
+        final ccParam = hasIndianKw ? '&countrycodes=in' : '';
         final response = await http.get(
-          Uri.parse('https://nominatim.openstreetmap.org/search?q=$cleanQuery&format=json&limit=1'),
+          Uri.parse('https://nominatim.openstreetmap.org/search?q=$cleanQuery&format=json&limit=1$ccParam'),
           headers: {'User-Agent': 'TravelCopilotAI/2.0'},
         );
         if (response.statusCode == 200) {
           final List data = jsonDecode(response.body);
           if (data.isNotEmpty) {
+            final String display = data[0]['display_name']?.toString() ?? '';
+            if (hasIndianKw && (display.toLowerCase().contains('pakistan') || display.toLowerCase().contains('bangladesh'))) {
+              continue;
+            }
             final double lat = double.parse(data[0]['lat'].toString());
             final double lng = double.parse(data[0]['lon'].toString());
             developer.log('Nominatim Geocoded $q -> ($lat, $lng)');
@@ -185,6 +207,12 @@ class ExploreApiService {
           final Map<String, dynamic> data = jsonDecode(response.body);
           final List features = data['features'] ?? [];
           if (features.isNotEmpty) {
+            final Map<String, dynamic> props = features[0]['properties'] ?? {};
+            final String country = (props['country'] ?? '').toString().toLowerCase();
+            final String name = (props['name'] ?? '').toString().toLowerCase();
+            if (hasIndianKw && (country.contains('pakistan') || name.contains('pakistan') || country == 'pakistan')) {
+              continue;
+            }
             final List coords = features[0]['geometry']['coordinates'];
             final double lat = double.parse(coords[1].toString());
             final double lng = double.parse(coords[0].toString());
@@ -195,6 +223,10 @@ class ExploreApiService {
       } catch (e) {
         developer.log('Photon web geocoding error for $q: $e');
       }
+    }
+
+    if (queryClean.contains('ballia')) {
+      return const LatLng(25.8749, 84.1210);
     }
 
     return syncRes;
