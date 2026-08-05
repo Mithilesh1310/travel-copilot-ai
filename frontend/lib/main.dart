@@ -262,9 +262,12 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
               _userPhotoUrl = data['user']['photo_url'] ?? account.photoUrl;
               _authProvider = 'google';
             });
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('🌐 Authenticated with Google! Welcome back, $_userName.'),
+                content: Text('🎉 Authenticated with Google! Welcome back, $_userName.'),
                 backgroundColor: const Color(0xFF10B981),
               ),
             );
