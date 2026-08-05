@@ -263,7 +263,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('🌐 Authenticated with Google! Welcome back, $_userName.'),
+                content: Text('🌐 Google OAuth Verified! Welcome back, $_userName.'),
                 backgroundColor: const Color(0xFF10B981),
               ),
             );
@@ -272,7 +272,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             setState(() => _isAuthLoading = false);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(res['error'] ?? 'Google authentication failed.'),
+                content: Text(res['error'] ?? 'Google OAuth verification failed on server.'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -282,162 +282,26 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
       } else {
         if (mounted) {
           setState(() => _isAuthLoading = false);
-          _showGoogleOAuthInputDialog();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Google Sign-In popup was closed or cancelled. No user was authenticated.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
         }
       }
     } catch (e) {
-      debugPrint('Google Sign-In Notice: $e');
+      debugPrint('Google Sign-In Exception: $e');
       if (mounted) {
         setState(() => _isAuthLoading = false);
-        _showGoogleOAuthInputDialog();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Google OAuth requires popup access. Please allow popups or use Email & Password below.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
-  }
-
-  void _showGoogleOAuthInputDialog() {
-    final googleEmailController = TextEditingController(text: _authEmailController.text.trim());
-    final googleNameController = TextEditingController(text: _authNameController.text.trim());
-    bool isGoogleSubmitting = false;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setGoogleModalState) {
-            return AlertDialog(
-              backgroundColor: const Color(0xFF1E293B),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.g_mobiledata, color: Colors.red, size: 28),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Google OAuth 2.0 Sign In',
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white70),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              content: SizedBox(
-                width: 400,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Enter your Google account email to authenticate and sync your profile securely.',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: googleEmailController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: 'Google Email Address',
-                        labelStyle: TextStyle(color: Colors.white70),
-                        prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF6366F1)),
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: googleNameController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name (Optional)',
-                        labelStyle: TextStyle(color: Colors.white70),
-                        prefixIcon: Icon(Icons.person_outline, color: Color(0xFF6366F1)),
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    if (isGoogleSubmitting)
-                      const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)))
-                    else
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4285F4),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          icon: const Icon(Icons.login),
-                          label: const Text('Authenticate with Google', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                          onPressed: () async {
-                            final email = googleEmailController.text.trim();
-                            final name = googleNameController.text.trim();
-
-                            if (email.isEmpty || !email.contains('@')) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please enter a valid Google email address.'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                              return;
-                            }
-
-                            setGoogleModalState(() => isGoogleSubmitting = true);
-                            final res = await ApiService.googleLogin(
-                              email: email,
-                              name: name.isNotEmpty ? name : email.split('@')[0],
-                              googleId: 'google_oauth_${email.hashCode}',
-                            );
-                            setGoogleModalState(() => isGoogleSubmitting = false);
-
-                            if (res['success'] == true && res['data'] != null) {
-                              final data = res['data'];
-                              _saveAuthSession(data['access_token'], data['user']);
-                              if (mounted) {
-                                setState(() {
-                                  _isLoggedIn = true;
-                                  _userToken = data['access_token'];
-                                  _userName = data['user']['name'] ?? email.split('@')[0];
-                                  _userEmail = data['user']['email'] ?? email;
-                                  _userPhotoUrl = data['user']['photo_url'];
-                                  _authProvider = 'google';
-                                });
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('🌐 Google Authentication Successful! Welcome, $_userName.'),
-                                    backgroundColor: const Color(0xFF10B981),
-                                  ),
-                                );
-                              }
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(res['error'] ?? 'Google authentication failed.'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
   void _loadExploreMissions() async {
