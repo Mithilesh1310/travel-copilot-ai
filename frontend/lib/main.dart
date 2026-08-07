@@ -479,14 +479,18 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
       return stop.imageUrl;
     }
     final nameLower = stop.name.toLowerCase();
-    if (nameLower.contains('gateway of india')) {
+    if (nameLower.contains('jama masjid')) {
+      return 'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('red fort') || nameLower.contains('lal qila')) {
+      return 'https://images.unsplash.com/photo-1592639296346-560c37a0f711?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('lodhi') || nameLower.contains('garden')) {
+      return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('gateway of india')) {
       return 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=500&q=80';
     } else if (nameLower.contains('marine drive') || nameLower.contains("queen's necklace")) {
       return 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&w=500&q=80';
     } else if (nameLower.contains('taj mahal')) {
       return 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=500&q=80';
-    } else if (nameLower.contains('red fort')) {
-      return 'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=500&q=80';
     } else if (nameLower.contains('qutub minar')) {
       return 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=500&q=80';
     } else if (nameLower.contains('eiffel')) {
