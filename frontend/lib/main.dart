@@ -474,6 +474,35 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     }
   }
 
+  String _resolveAttractionImage(AttractionStop stop) {
+    if (stop.imageUrl.isNotEmpty && stop.imageUrl.startsWith('http')) {
+      return stop.imageUrl;
+    }
+    final nameLower = stop.name.toLowerCase();
+    if (nameLower.contains('gateway of india')) {
+      return 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('marine drive') || nameLower.contains("queen's necklace")) {
+      return 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('taj mahal')) {
+      return 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('red fort')) {
+      return 'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('qutub minar')) {
+      return 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('eiffel')) {
+      return 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('louvre')) {
+      return 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('colaba') || nameLower.contains('bazaar') || nameLower.contains('market')) {
+      return 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('zoo') || nameLower.contains('forest') || nameLower.contains('botanical')) {
+      return 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=500&q=80';
+    } else if (nameLower.contains('lake') || nameLower.contains('waterfront') || nameLower.contains('promenade')) {
+      return 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=500&q=80';
+    }
+    return 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=500&q=80';
+  }
+
   void _loadInitialData() async {
     final analytics = await ApiService.fetchAnalytics();
     final notifs = await ApiService.fetchNotifications();
@@ -5255,75 +5284,168 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
               final idx = entry.key + 1;
               final stop = entry.value;
 
+              final isMobileCard = MediaQuery.of(context).size.width < 650;
+              final imgUrl = _resolveAttractionImage(stop);
+
+              Widget imageWidget = ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  width: isMobileCard ? double.infinity : 155,
+                  height: isMobileCard ? 150 : 135,
+                  child: Image.network(
+                    imgUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6366F1)),
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.museum_outlined, color: Color(0xFF818CF8), size: 30),
+                            const SizedBox(height: 6),
+                            Text(
+                              stop.category,
+                              style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            Text(
+                              stop.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+
+              Widget detailsWidget = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: const Color(0xFF6366F1),
+                        radius: 13,
+                        child: Text('$idx', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(stop.scheduledTime, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6366F1), fontSize: 13)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          stop.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: titleColor),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.info_outline, color: Color(0xFF6366F1), size: 20),
+                        onPressed: () => _showAttractionModalSheet(context, stop),
+                        tooltip: 'Attraction Details',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.auto_awesome, color: Color(0xFF6366F1), size: 14),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            stop.aiReasoning,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: titleColor, fontStyle: FontStyle.italic),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Text('⏱️ Visit: ${stop.visitDurationMins} mins', style: TextStyle(color: subtitleColor, fontSize: 12)),
+                      const SizedBox(width: 14),
+                      Text('💰 Cost: ₹${stop.estimatedCost.toInt()}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 12)),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: () => _handleSkipStop(stop),
+                        icon: const Icon(Icons.close, size: 13, color: Colors.grey),
+                        label: const Text('Skip', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                        style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: cardBg,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: cardBorder),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: const Color(0xFF6366F1),
-                          radius: 14,
-                          child: Text('$idx', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(stop.scheduledTime, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6366F1), fontSize: 13)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            stop.name,
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: titleColor),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.info_outline, color: Color(0xFF6366F1)),
-                          onPressed: () => _showAttractionModalSheet(context, stop),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6366F1).withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.auto_awesome, color: Color(0xFF6366F1), size: 16),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              stop.aiReasoning,
-                              style: TextStyle(fontSize: 12, color: titleColor, fontStyle: FontStyle.italic),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Text('⏱️ Visit: ${stop.visitDurationMins} mins', style: TextStyle(color: subtitleColor, fontSize: 12)),
-                        const SizedBox(width: 16),
-                        Text('💰 Cost: ₹${stop.estimatedCost.toInt()}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 12)),
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: () => _handleSkipStop(stop),
-                          icon: const Icon(Icons.close, size: 14, color: Colors.grey),
-                          label: const Text('Skip', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                        ),
-                      ],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
+                child: isMobileCard
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          imageWidget,
+                          const SizedBox(height: 12),
+                          detailsWidget,
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          imageWidget,
+                          const SizedBox(width: 16),
+                          Expanded(child: detailsWidget),
+                        ],
+                      ),
               );
             }),
           ] else ...[
