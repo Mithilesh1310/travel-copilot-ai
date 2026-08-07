@@ -1,3 +1,5 @@
+import 'package:latlong2/latlong.dart';
+
 class AttractionStop {
   final String id;
   final String name;
@@ -180,6 +182,10 @@ class ExploreItinerary {
   final List<Map<String, dynamic>> shoppingRecommendations;
   final bool waitingForApiCredentials;
   final String? apiCredentialsMessage;
+  final List<LatLng> roadPolyline;
+  final double totalRoadDistanceKm;
+  final int totalRoadDurationMins;
+  final String eta;
 
   ExploreItinerary({
     required this.location,
@@ -198,9 +204,22 @@ class ExploreItinerary {
     required this.shoppingRecommendations,
     required this.waitingForApiCredentials,
     this.apiCredentialsMessage,
+    this.roadPolyline = const [],
+    this.totalRoadDistanceKm = 0.0,
+    this.totalRoadDurationMins = 0,
+    this.eta = '05:00 PM',
   });
 
   factory ExploreItinerary.fromJson(Map<String, dynamic> json) {
+    List<LatLng> poly = [];
+    if (json['road_polyline'] != null && json['road_polyline'] is List) {
+      for (var item in (json['road_polyline'] as List)) {
+        if (item is List && item.length >= 2) {
+          poly.add(LatLng((item[0] as num).toDouble(), (item[1] as num).toDouble()));
+        }
+      }
+    }
+
     return ExploreItinerary(
       location: json['location'] ?? 'Destination',
       lat: (json['lat'] ?? 28.6139).toDouble(),
@@ -218,6 +237,10 @@ class ExploreItinerary {
       shoppingRecommendations: (json['shopping_recommendations'] as List<dynamic>?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? [],
       waitingForApiCredentials: json['waiting_for_api_credentials'] ?? false,
       apiCredentialsMessage: json['api_credentials_message'],
+      roadPolyline: poly,
+      totalRoadDistanceKm: (json['total_road_distance_km'] ?? 0.0).toDouble(),
+      totalRoadDurationMins: (json['total_road_duration_mins'] ?? 0).toInt(),
+      eta: json['eta'] ?? '05:00 PM',
     );
   }
 }

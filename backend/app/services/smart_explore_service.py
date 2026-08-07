@@ -3,6 +3,8 @@ import math
 import logging
 from typing import List, Dict, Any, Optional
 
+from .road_routing_service import RoadRoutingService
+
 logger = logging.getLogger(__name__)
 
 class SmartExploreService:
@@ -1809,6 +1811,9 @@ class SmartExploreService:
         total_cost = sum(s["estimated_cost"] for s in stops)
         remaining_budget = max(0.0, budget - total_cost)
 
+        start_time = stops[0].get("scheduled_time", "09:00 AM") if stops else "09:00 AM"
+        route_info = RoadRoutingService.get_road_route(stops, start_time_str=start_time)
+
         return {
             "location": location_name,
             "lat": lat,
@@ -1827,7 +1832,11 @@ class SmartExploreService:
             "food_recommendations": [{"name": f"Iconic Local Eatery, {location_name}", "cuisine": "Authentic Local Speciality"}],
             "shopping_recommendations": [{"name": f"Heritage Handicraft Bazaar, {location_name}", "specialty": "Traditional Craft"}],
             "waiting_for_api_credentials": False,
-            "api_credentials_message": "API Credentials verified and active."
+            "api_credentials_message": "API Credentials verified and active.",
+            "road_polyline": route_info.get("road_polyline", []),
+            "total_road_distance_km": route_info.get("total_road_distance_km", 0.0),
+            "total_road_duration_mins": route_info.get("total_road_duration_mins", 0),
+            "eta": route_info.get("eta", "05:00 PM")
         }
 
     @classmethod

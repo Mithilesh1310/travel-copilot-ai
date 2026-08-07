@@ -5202,6 +5202,10 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
               child: ExploreMapWidget(
                 initialCenter: _exploreMapCenter,
                 stops: _exploreItinerary?.stops ?? [],
+                roadPolyline: _exploreItinerary?.roadPolyline ?? [],
+                totalRoadDistanceKm: _exploreItinerary?.totalRoadDistanceKm ?? 0.0,
+                totalRoadDurationMins: _exploreItinerary?.totalRoadDurationMins ?? 0,
+                eta: _exploreItinerary?.eta ?? '05:00 PM',
                 emergencyFacilities: _emergencyFacilities,
                 showEmergencyOverlay: _showEmergencyOverlay,
                 onStopTap: (stop) => _showAttractionModalSheet(context, stop),

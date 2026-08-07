@@ -315,5 +315,10 @@ class ExploreItineraryResponse(BaseModel):
     shopping_recommendations: List[Dict[str, Any]]
     waiting_for_api_credentials: bool = False
     api_credentials_message: Optional[str] = None
+    road_polyline: List[List[float]] = []
+    total_road_distance_km: float = 0.0
+    total_road_duration_mins: int = 0
+    eta: Optional[str] = None
+
 
 
