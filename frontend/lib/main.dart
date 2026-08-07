@@ -13,6 +13,7 @@ import 'widgets/explore_attraction_sheet.dart';
 import 'widgets/explore_emergency_sheet.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const AiTravelCopilotApp());
 }
 
@@ -232,7 +233,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: '241665943943-pv9qrumslddk859epktpqvjrd3si45us.apps.googleusercontent.com',
-    scopes: ['email', 'profile', 'openid'],
+    scopes: ['email'],
   );
 
   void _performGoogleSignIn() async {
@@ -240,12 +241,19 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     try {
       final account = await _googleSignIn.signIn();
       if (account != null) {
-        final auth = await account.authentication;
+        String? idTokenStr;
+        try {
+          final auth = await account.authentication;
+          idTokenStr = auth.idToken;
+        } catch (authErr) {
+          debugPrint('Notice: Google Auth token fetch fallback: $authErr');
+        }
+
         final res = await ApiService.googleLogin(
           email: account.email,
           name: account.displayName ?? account.email.split('@')[0],
           photoUrl: account.photoUrl,
-          idToken: auth.idToken,
+          idToken: idTokenStr,
           googleId: account.id,
         );
 
@@ -304,6 +312,15 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             const SnackBar(
               content: Text('Google Sign-In popup closed. Please complete account selection in the popup.'),
               backgroundColor: Colors.orange,
+            ),
+          );
+        } else if (errStr.contains('people.googleapis.com') || errStr.contains('403') || errStr.contains('permission_denied')) {
+          // People API is not enabled in Google Cloud Console project
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ Google People API disabled in Google Cloud Console. Enable People API at: console.developers.google.com'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 8),
             ),
           );
         } else {
