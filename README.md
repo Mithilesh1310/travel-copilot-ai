@@ -66,6 +66,19 @@
 
 ---
 
+### 🗺️ 6. AI Sightseeing & Explore Engine (Real Road Navigation & In-App Voice Guidance)
+- **OSRM Real Road Navigation Routes**: Replaces straight displacement lines with actual street-level road-following polylines (`#4285F4` double-stroke blue lines with camera auto-bounds fitting).
+- **1-Click Sightseeing Mission Trails**: Instant 1-click trail generation (*History & Heritage Trail*, *Street Food & Flavors*, *Photography & Golden Hour*, *Shopping & Local Bazaars*).
+- **Authentic Landmark Photographs**: Displays verified photos matching Google Maps & Wikipedia Commons for all destinations (Jama Masjid, Red Fort, Lodhi Gardens, Chandni Chowk, Qutub Minar, Gateway of India, Taj Mahal, Eiffel Tower, etc.) with skeleton loaders and error fallbacks.
+- **In-App Turn-By-Turn Live Navigation**:
+  - Green Google Maps direction banner (*"In 250m, Turn Right onto Main Entrance Road"*).
+  - Distance remaining (`1.2 km`) and drive ETA (`4 mins`).
+  - **Voice Guidance Assistant**: Speaks turn instructions aloud using HTML5 Web Speech Synthesis API.
+  - Close-up tracking camera (`zoom: 16.5`) with **Next Stop** and **Exit Nav** controls.
+- **Emergency Facilities Overlay**: One-tap toggle displaying nearby Hospitals, Police Stations, and Pharmacies with instant dialing.
+
+---
+
 ## 🛠️ Tech Stack & Architecture
 
 | Layer | Technology | Description |
@@ -196,6 +209,9 @@ flutter test
 | `POST` | `/api/search` | Search optimal travel itineraries using Dijkstra engine |
 | `POST` | `/api/chat` | AI Copilot conversational assistant with exact cab fares |
 | `POST` | `/api/budget/analyze` | AI Financial Advisor budget optimization report |
+| `POST` | `/api/explore/plan` | Plan AI Sightseeing itinerary with OSRM real road polylines |
+| `GET` | `/api/explore/missions` | Fetch 1-click curated sightseeing mission trails |
+| `GET` | `/api/explore/audio-guide/{id}` | Generate AI Voice Guide script for attraction stops |
 | `GET` | `/api/hotels` | Fetch live hotels in target destination via SerpApi |
 | `GET` | `/api/notifications` | Get real-time delay & weather notifications |
 | `GET` | `/api/user/analytics` | Retrieve cumulative savings & travel statistics |
