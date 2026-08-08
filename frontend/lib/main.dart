@@ -25,7 +25,7 @@ class AiTravelCopilotApp extends StatefulWidget {
 }
 
 class _AiTravelCopilotAppState extends State<AiTravelCopilotApp> {
-  ThemeMode _themeMode = ThemeMode.dark;
+  ThemeMode _themeMode = ThemeMode.light;
 
   void _toggleTheme() {
     setState(() {
