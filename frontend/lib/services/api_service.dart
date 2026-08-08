@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/travel_models.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:8000/api';
+  static String get baseUrl => kReleaseMode || kIsWeb
+      ? 'https://travel-copilot-ai.onrender.com/api'
+      : 'http://localhost:8000/api';
 
   static Future<List<Itinerary>> searchTrips({
     required String origin,

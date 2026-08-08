@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../models/explore_models.dart';
 
 class ExploreApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api/explore';
+  static String get baseUrl => kReleaseMode || kIsWeb
+      ? 'https://travel-copilot-ai.onrender.com/api/explore'
+      : 'http://127.0.0.1:8000/api/explore';
 
   static Future<Map<String, dynamic>> fetchLiveGpsLocation() async {
     try {
