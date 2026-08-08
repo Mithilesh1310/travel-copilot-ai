@@ -19,3 +19,6 @@ backend/test_pois.py
 frontend/.dart_tool/
 frontend/.pub/
 frontend/build/
+
+.vercel
+.env*
