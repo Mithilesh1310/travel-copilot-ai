@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'dart:html' as html;
 import '../models/explore_models.dart';
 import '../services/explore_api_service.dart';
+import '../services/web_speech_service.dart';
 
 class ExploreAttractionSheet extends StatefulWidget {
   final AttractionStop stop;
@@ -52,32 +51,11 @@ class _ExploreAttractionSheetState extends State<ExploreAttractionSheet> {
     });
 
     if (!newState) {
-      try {
-        html.window.speechSynthesis?.cancel();
-      } catch (_) {}
+      stopWebSpeech();
       return;
     }
 
-    try {
-      if (html.window.speechSynthesis != null) {
-        html.window.speechSynthesis?.cancel();
-        final utterance = html.SpeechSynthesisUtterance(script)
-          ..rate = 0.95
-          ..pitch = 1.0
-          ..lang = 'en-US';
-        
-        utterance.onEnd.listen((_) {
-          if (mounted) setState(() => _isPlayingVoiceGuide = false);
-        });
-        utterance.onError.listen((_) {
-          if (mounted) setState(() => _isPlayingVoiceGuide = false);
-        });
-
-        html.window.speechSynthesis?.speak(utterance);
-      }
-    } catch (e) {
-      debugPrint('Speech synthesis error: $e');
-    }
+    speakWebText(script);
   }
 
   @override

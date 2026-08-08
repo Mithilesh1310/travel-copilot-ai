@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:math' as math;
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import '../models/explore_models.dart';
+import '../services/web_speech_service.dart';
 
 class ExploreMapWidget extends StatefulWidget {
   final LatLng initialCenter;
@@ -85,13 +85,7 @@ class _ExploreMapWidgetState extends State<ExploreMapWidget> {
   }
 
   void _speakNavInstruction(String text) {
-    try {
-      html.window.speechSynthesis?.cancel();
-      final utterance = html.SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      utterance.lang = 'en-US';
-      html.window.speechSynthesis?.speak(utterance);
-    } catch (_) {}
+    speakWebText(text);
   }
 
   Future<void> _resolveRoadPolyline() async {
