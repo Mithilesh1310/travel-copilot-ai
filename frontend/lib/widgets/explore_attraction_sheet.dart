@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
 import '../models/explore_models.dart';
 import '../services/explore_api_service.dart';
@@ -7,12 +8,14 @@ class ExploreAttractionSheet extends StatefulWidget {
   final AttractionStop stop;
   final bool isDarkMode;
   final VoidCallback? onSkipStop;
+  final Function(AttractionStop)? onStartNavigation;
 
   const ExploreAttractionSheet({
     super.key,
     required this.stop,
     required this.isDarkMode,
     this.onSkipStop,
+    this.onStartNavigation,
   });
 
   @override
@@ -304,7 +307,21 @@ class _ExploreAttractionSheetState extends State<ExploreAttractionSheet> {
                 Expanded(
                   flex: 2,
                   child: ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      widget.onStartNavigation?.call(widget.stop);
+                      final googleMapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=${widget.stop.lat},${widget.stop.lng}&travelmode=driving';
+                      try {
+                        final uri = Uri.parse(googleMapsUrl);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } else {
+                          html.window.open(googleMapsUrl, '_blank');
+                        }
+                      } catch (_) {
+                        html.window.open(googleMapsUrl, '_blank');
+                      }
+                    },
                     icon: const Icon(Icons.navigation, size: 18),
                     label: const Text('Start Live Navigation'),
                     style: ElevatedButton.styleFrom(

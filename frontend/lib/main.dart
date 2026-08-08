@@ -456,6 +456,18 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           Navigator.pop(ctx);
           _handleSkipStop(stop);
         },
+        onStartNavigation: (st) {
+          setState(() {
+            _exploreMapCenter = LatLng(st.lat, st.lng);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('🚀 Starting Live Navigation to ${st.name}! Opening Google Maps driving route...'),
+              backgroundColor: const Color(0xFF6366F1),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        },
       ),
     );
   }
