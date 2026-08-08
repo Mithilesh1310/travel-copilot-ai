@@ -307,20 +307,9 @@ class _ExploreAttractionSheetState extends State<ExploreAttractionSheet> {
                 Expanded(
                   flex: 2,
                   child: ElevatedButton.icon(
-                    onPressed: () async {
+                    onPressed: () {
                       Navigator.pop(context);
                       widget.onStartNavigation?.call(widget.stop);
-                      final googleMapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=${widget.stop.lat},${widget.stop.lng}&travelmode=driving';
-                      try {
-                        final uri = Uri.parse(googleMapsUrl);
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        } else {
-                          html.window.open(googleMapsUrl, '_blank');
-                        }
-                      } catch (_) {
-                        html.window.open(googleMapsUrl, '_blank');
-                      }
                     },
                     icon: const Icon(Icons.navigation, size: 18),
                     label: const Text('Start Live Navigation'),

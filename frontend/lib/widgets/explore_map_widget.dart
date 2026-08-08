@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -16,6 +17,9 @@ class ExploreMapWidget extends StatefulWidget {
   final String eta;
   final List<EmergencyLocation> emergencyFacilities;
   final bool showEmergencyOverlay;
+  final AttractionStop? activeNavStop;
+  final VoidCallback? onExitNavigation;
+  final Function(AttractionStop)? onNextNavigationStop;
   final Function(AttractionStop)? onStopTap;
   final Function(EmergencyLocation)? onEmergencyTap;
 
@@ -30,6 +34,9 @@ class ExploreMapWidget extends StatefulWidget {
     this.eta = '05:00 PM',
     this.emergencyFacilities = const [],
     this.showEmergencyOverlay = false,
+    this.activeNavStop,
+    this.onExitNavigation,
+    this.onNextNavigationStop,
     this.onStopTap,
     this.onEmergencyTap,
   });
@@ -51,6 +58,11 @@ class _ExploreMapWidgetState extends State<ExploreMapWidget> {
     super.initState();
     _mapController = MapController();
     _resolveRoadPolyline();
+    if (widget.activeNavStop != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusOnNavStop(widget.activeNavStop!);
+      });
+    }
   }
 
   @override
@@ -61,6 +73,25 @@ class _ExploreMapWidgetState extends State<ExploreMapWidget> {
         widget.roadPolyline != oldWidget.roadPolyline) {
       _resolveRoadPolyline();
     }
+
+    if (widget.activeNavStop != null && oldWidget.activeNavStop != widget.activeNavStop) {
+      _focusOnNavStop(widget.activeNavStop!);
+    }
+  }
+
+  void _focusOnNavStop(AttractionStop stop) {
+    _mapController.move(LatLng(stop.lat, stop.lng), 16.5);
+    _speakNavInstruction("Starting turn-by-turn navigation to ${stop.name}. Directing along optimized road route.");
+  }
+
+  void _speakNavInstruction(String text) {
+    try {
+      html.window.speechSynthesis?.cancel();
+      final utterance = html.SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.lang = 'en-US';
+      html.window.speechSynthesis?.speak(utterance);
+    } catch (_) {}
   }
 
   Future<void> _resolveRoadPolyline() async {
@@ -363,26 +394,176 @@ class _ExploreMapWidgetState extends State<ExploreMapWidget> {
           ],
         ),
 
-        // Google Maps Navigation Control Panel (Top-Center Floating Glassmorphic Header)
-        Positioned(
-          top: 14,
-          left: 14,
-          right: 14,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withValues(alpha: 0.90),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4), width: 1.2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.4),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
+        // Active Live Navigation In-App Top Header Overlay
+        if (widget.activeNavStop != null) ...[
+          Positioned(
+            top: 14,
+            left: 14,
+            right: 14,
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF047857), Color(0xFF065F46)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.turn_right, color: Colors.white, size: 26),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'In 250m, Turn Right onto Main Entrance Road',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'NAVIGATING TO: ${widget.activeNavStop!.name}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFA7F3D0),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Column(
+                      children: [
+                        Text(
+                          '1.2 km',
+                          style: TextStyle(
+                            color: Color(0xFF047857),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          '4 mins',
+                          style: TextStyle(
+                            color: Color(0xFF065F46),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: SingleChildScrollView(
+          ),
+
+          // Active Live Navigation Bottom Control Panel Overlay
+          Positioned(
+            bottom: 16,
+            left: 16,
+            right: 76,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.94),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: widget.onExitNavigation,
+                    icon: const Icon(Icons.close, size: 15),
+                    label: const Text('Exit Nav', style: TextStyle(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF4444),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    onPressed: () => _speakNavInstruction('In 250 meters, your destination ${widget.activeNavStop!.name} will be on your right.'),
+                    icon: const Icon(Icons.volume_up, color: Color(0xFF10B981), size: 20),
+                    tooltip: 'Voice Guidance',
+                  ),
+                  const Spacer(),
+                  if (widget.onNextNavigationStop != null && widget.stops.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () {
+                        final currentIdx = widget.stops.indexWhere((s) => s.id == widget.activeNavStop!.id);
+                        if (currentIdx >= 0 && currentIdx + 1 < widget.stops.length) {
+                          widget.onNextNavigationStop!(widget.stops[currentIdx + 1]);
+                        } else {
+                          widget.onExitNavigation?.call();
+                        }
+                      },
+                      icon: const Icon(Icons.skip_next, size: 15, color: Color(0xFF38BDF8)),
+                      label: const Text('Next Stop', style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ] else ...[
+          // Google Maps Navigation Control Panel (Top-Center Floating Glassmorphic Header)
+          Positioned(
+            top: 14,
+            left: 14,
+            right: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.90),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4), width: 1.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -475,6 +656,7 @@ class _ExploreMapWidgetState extends State<ExploreMapWidget> {
             ),
           ),
         ),
+      ],
 
         // Map Control Floating Pill Buttons (Center, Zoom In, Zoom Out)
         Positioned(

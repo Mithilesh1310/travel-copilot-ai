@@ -167,6 +167,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   bool _showEmergencyOverlay = false;
   List<EmergencyLocation> _emergencyFacilities = [];
   LatLng _exploreMapCenter = const LatLng(28.6139, 77.2090);
+  AttractionStop? _activeNavStop;
 
   @override
   void initState() {
@@ -458,12 +459,13 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
         },
         onStartNavigation: (st) {
           setState(() {
+            _activeNavStop = st;
             _exploreMapCenter = LatLng(st.lat, st.lng);
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('🚀 Starting Live Navigation to ${st.name}! Opening Google Maps driving route...'),
-              backgroundColor: const Color(0xFF6366F1),
+              content: Text('🚀 In-App Live Navigation Active for ${st.name}! Directing on live map...'),
+              backgroundColor: const Color(0xFF10B981),
               duration: const Duration(seconds: 4),
             ),
           );
@@ -5277,6 +5279,18 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 eta: _exploreItinerary?.eta ?? '05:00 PM',
                 emergencyFacilities: _emergencyFacilities,
                 showEmergencyOverlay: _showEmergencyOverlay,
+                activeNavStop: _activeNavStop,
+                onExitNavigation: () {
+                  setState(() {
+                    _activeNavStop = null;
+                  });
+                },
+                onNextNavigationStop: (nextStop) {
+                  setState(() {
+                    _activeNavStop = nextStop;
+                    _exploreMapCenter = LatLng(nextStop.lat, nextStop.lng);
+                  });
+                },
                 onStopTap: (stop) => _showAttractionModalSheet(context, stop),
                 onEmergencyTap: (em) {
                   ScaffoldMessenger.of(context).showSnackBar(
