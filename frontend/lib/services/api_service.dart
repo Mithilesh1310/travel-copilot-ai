@@ -3,6 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/travel_models.dart';
 
+class GetMeResult {
+  final Map<String, dynamic>? user;
+  final bool isUnauthorized;
+
+  GetMeResult({this.user, this.isUnauthorized = false});
+}
+
 class ApiService {
   static String get baseUrl => kReleaseMode || kIsWeb
       ? 'https://travel-copilot-ai.onrender.com/api'
@@ -238,12 +245,30 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
     } catch (_) {}
     return null;
+  }
+
+  static Future<GetMeResult> getMeWithStatus(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        return GetMeResult(user: jsonDecode(response.body));
+      } else if (response.statusCode == 401) {
+        return GetMeResult(isUnauthorized: true);
+      }
+    } catch (_) {}
+    return GetMeResult();
   }
 
   static Future<void> markNotificationRead(int id) async {

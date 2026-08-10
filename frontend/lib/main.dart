@@ -183,19 +183,43 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   void _restoreAuthSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
+    final savedName = prefs.getString('user_name');
+    final savedEmail = prefs.getString('user_email');
+    final savedPhoto = prefs.getString('user_photo');
+    final savedProvider = prefs.getString('auth_provider') ?? 'email';
+
     if (token != null && token.isNotEmpty) {
-      final user = await ApiService.getMe(token);
-      if (user != null && mounted) {
+      // 1. Immediately restore user login session from local cache (0ms delay)
+      if (mounted) {
         setState(() {
           _isLoggedIn = true;
           _userToken = token;
-          _userName = user['name'] ?? 'Traveler';
-          _userEmail = user['email'] ?? 'traveler@example.com';
-          _userPhotoUrl = user['photo_url'];
-          _authProvider = user['auth_provider'] ?? 'email';
+          _userName = (savedName != null && savedName.isNotEmpty) ? savedName : 'Traveler';
+          _userEmail = (savedEmail != null && savedEmail.isNotEmpty) ? savedEmail : 'traveler@example.com';
+          _userPhotoUrl = savedPhoto;
+          _authProvider = savedProvider;
         });
-      } else {
+      }
+
+      // 2. Validate token with backend in background; ONLY wipe if explicitly HTTP 401 Unauthorized
+      final result = await ApiService.getMeWithStatus(token);
+      if (result.isUnauthorized && mounted) {
         await prefs.clear();
+        setState(() {
+          _isLoggedIn = false;
+          _userToken = null;
+          _userName = '';
+          _userEmail = '';
+          _userPhotoUrl = null;
+          _authProvider = 'email';
+        });
+      } else if (result.user != null && mounted) {
+        setState(() {
+          _userName = result.user!['name'] ?? _userName;
+          _userEmail = result.user!['email'] ?? _userEmail;
+          _userPhotoUrl = result.user!['photo_url'] ?? _userPhotoUrl;
+        });
+        _saveAuthSession(token, result.user!);
       }
     }
   }
