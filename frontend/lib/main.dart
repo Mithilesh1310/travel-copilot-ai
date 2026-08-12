@@ -146,6 +146,29 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   bool _isGateRegisterMode = false;
   bool _obscurePassword = true;
   bool _agreedToTerms = true;
+  int _heroImageIndex = 0;
+  final List<Map<String, String>> _heroSlides = const [
+    {
+      'image': 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?q=80&w=1200&auto=format&fit=crop',
+      'location': 'Swiss Alps, Switzerland 🇨🇭',
+      'title': 'Capturing Moments,\nCreating Memories',
+    },
+    {
+      'image': 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1200&auto=format&fit=crop',
+      'location': 'Scenic Mountain Flight ✈️',
+      'title': 'Fly Above Clouds,\nDiscover Far Away Places',
+    },
+    {
+      'image': 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?q=80&w=1200&auto=format&fit=crop',
+      'location': 'Santorini Coastal Escape 🇬🇷',
+      'title': 'Plan Smarter,\nTravel & Explore Farther',
+    },
+    {
+      'image': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1200&auto=format&fit=crop',
+      'location': 'Paris Sunset Boulevard 🇫🇷',
+      'title': 'Your Ultimate AI\nPersonal Travel Copilot',
+    },
+  ];
   final TextEditingController _authNameController = TextEditingController();
   final TextEditingController _authLastNameController = TextEditingController();
   final TextEditingController _authEmailController = TextEditingController();
@@ -5617,117 +5640,170 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 child: StatefulBuilder(
                   builder: (context, setAuthGateState) {
                     Widget buildLeftHeroCard() {
-                      return Container(
-                        height: isMobile ? 240 : 620,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF2E1065), Color(0xFF1E1B4B), Color(0xFF0F172A)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            gradient: LinearGradient(
-                              colors: [
-                                const Color(0xFF4C1D95).withValues(alpha: 0.8),
-                                Colors.black.withValues(alpha: 0.45),
-                                const Color(0xFF0F172A).withValues(alpha: 0.9),
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                          ),
-                          padding: const EdgeInsets.all(28),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Top Brand Header & Back Button
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.2),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: const Icon(Icons.flight_takeoff, color: Colors.white, size: 22),
+                      final currentSlide = _heroSlides[_heroImageIndex];
+
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Stack(
+                          children: [
+                            // Aesthetic Destination Background Image with Fallback Gradient
+                            Positioned.fill(
+                              child: Image.network(
+                                currentSlide['image']!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Color(0xFF3B0764), Color(0xFF1E1B4B), Color(0xFF0F172A)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
                                       ),
-                                      const SizedBox(width: 10),
-                                      const Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+
+                            // Rich Gradient Vignette Overlay
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      const Color(0xFF1E1B4B).withValues(alpha: 0.65),
+                                      Colors.black.withValues(alpha: 0.35),
+                                      const Color(0xFF0F172A).withValues(alpha: 0.90),
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // Hero Content Card Body
+                            Padding(
+                              padding: const EdgeInsets.all(28),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Top Brand Header & Back Button
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
                                         children: [
-                                          Text(
-                                            'AMU',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 20,
-                                              letterSpacing: 2.0,
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.22),
+                                              borderRadius: BorderRadius.circular(10),
                                             ),
+                                            child: const Icon(Icons.flight_takeoff, color: Colors.white, size: 22),
                                           ),
-                                          Text(
-                                            'AI Travel Copilot',
-                                            style: TextStyle(
-                                              color: Colors.white70,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w500,
-                                            ),
+                                          const SizedBox(width: 10),
+                                          const Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'TRAVEL COPILOT',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w900,
+                                                  fontSize: 16,
+                                                  letterSpacing: 1.5,
+                                                ),
+                                              ),
+                                              Text(
+                                                'AI Travel Copilot',
+                                                style: TextStyle(
+                                                  color: Colors.white70,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
+                                      TextButton.icon(
+                                        onPressed: () {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Please sign in or create an account to access the workspace.')),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.arrow_forward, size: 14, color: Colors.white70),
+                                        label: const Text('Back to website', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                        style: TextButton.styleFrom(
+                                          backgroundColor: Colors.white.withValues(alpha: 0.18),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                        ),
+                                      ),
                                     ],
                                   ),
-                                  TextButton.icon(
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Please sign in or create an account to access the workspace.')),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.arrow_forward, size: 14, color: Colors.white70),
-                                    label: const Text('Back to website', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                                    style: TextButton.styleFrom(
-                                      backgroundColor: Colors.white.withValues(alpha: 0.15),
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                    ),
-                                  ),
-                                ],
-                              ),
 
-                              // Bottom Tagline & Carousel Dots
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Capturing Moments,\nCreating Memories',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      height: 1.25,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Row(
+                                  // Bottom Tagline, Location Badge & Interactive Carousel Bars
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Container(width: 24, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2))),
-                                      const SizedBox(width: 6),
-                                      Container(width: 24, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2))),
-                                      const SizedBox(width: 6),
-                                      Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(2))),
+                                      // Location Badge Pill
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        margin: const EdgeInsets.only(bottom: 12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withValues(alpha: 0.45),
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                                        ),
+                                        child: Text(
+                                          currentSlide['location']!,
+                                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+
+                                      Text(
+                                        currentSlide['title']!,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                          height: 1.25,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+
+                                      // Interactive Carousel Indicator Bars
+                                      Row(
+                                        children: List.generate(_heroSlides.length, (idx) {
+                                          final isSelected = idx == _heroImageIndex;
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setAuthGateState(() {
+                                                _heroImageIndex = idx;
+                                              });
+                                            },
+                                            child: AnimatedContainer(
+                                              duration: const Duration(milliseconds: 300),
+                                              margin: const EdgeInsets.only(right: 6),
+                                              width: isSelected ? 36 : 24,
+                                              height: 4,
+                                              decoration: BoxDecoration(
+                                                color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.4),
+                                                borderRadius: BorderRadius.circular(2),
+                                              ),
+                                            ),
+                                          );
+                                        }),
+                                      ),
                                     ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       );
                     }
