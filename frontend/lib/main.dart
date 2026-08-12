@@ -220,8 +220,12 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     _heroCarouselTimer?.cancel();
     _heroCarouselTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (mounted && !_isLoggedIn) {
-        setState(() {
-          _heroImageIndex = (_heroImageIndex + 1) % _heroSlides.length;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_isLoggedIn) {
+            setState(() {
+              _heroImageIndex = (_heroImageIndex + 1) % _heroSlides.length;
+            });
+          }
         });
       }
     });
