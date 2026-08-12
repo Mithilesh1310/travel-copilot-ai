@@ -5584,7 +5584,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     );
   }
 
-  // MANDATORY AUTHENTICATION GATE SCREEN - STUNNING LIGHT MODE SPLIT-SCREEN
+  // MANDATORY AUTHENTICATION GATE SCREEN - STUNNING SPLIT-SCREEN AUTH PAGE
   Widget _buildAuthGateScreen() {
     final mediaQuery = MediaQuery.of(context);
     final isMobile = mediaQuery.size.width < 900;
@@ -5594,9 +5594,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 1040),
+              constraints: const BoxConstraints(maxWidth: 1020),
               decoration: BoxDecoration(
                 color: const Color(0xFF1E1B2E),
                 borderRadius: BorderRadius.circular(28),
@@ -5616,476 +5616,483 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 ),
                 child: StatefulBuilder(
                   builder: (context, setAuthGateState) {
-                    return Flex(
-                      direction: isMobile ? Axis.vertical : Axis.horizontal,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // LEFT PANEL: Hero Visual Card (Matching Screenshot exactly)
-                        Expanded(
-                          flex: isMobile ? 0 : 5,
-                          child: Container(
-                            height: isMobile ? 260 : 640,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF2E1065), Color(0xFF1E1B4B), Color(0xFF0F172A)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                gradient: LinearGradient(
-                                  colors: [
-                                    const Color(0xFF4C1D95).withValues(alpha: 0.8),
-                                    Colors.black.withValues(alpha: 0.45),
-                                    const Color(0xFF0F172A).withValues(alpha: 0.9),
-                                  ],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                ),
-                              ),
-                              padding: const EdgeInsets.all(28),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Top Brand Header & Back Button
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white.withValues(alpha: 0.2),
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                            child: const Icon(Icons.flight_takeoff, color: Colors.white, size: 22),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          const Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'AMU',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w900,
-                                                  fontSize: 20,
-                                                  letterSpacing: 2.0,
-                                                ),
-                                              ),
-                                              Text(
-                                                'AI Travel Copilot',
-                                                style: TextStyle(
-                                                  color: Colors.white70,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                      TextButton.icon(
-                                        onPressed: () {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Please sign in or create an account to access the workspace.')),
-                                          );
-                                        },
-                                        icon: const Icon(Icons.arrow_forward, size: 14, color: Colors.white70),
-                                        label: const Text('Back to website', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                                        style: TextButton.styleFrom(
-                                          backgroundColor: Colors.white.withValues(alpha: 0.15),
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  // Bottom Tagline & Carousel Dots
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Capturing Moments,\nCreating Memories',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold,
-                                          height: 1.25,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 20),
-                                      Row(
-                                        children: [
-                                          Container(width: 24, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2))),
-                                          const SizedBox(width: 6),
-                                          Container(width: 24, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2))),
-                                          const SizedBox(width: 6),
-                                          Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(2))),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
+                    Widget buildLeftHeroCard() {
+                      return Container(
+                        height: isMobile ? 240 : 620,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF2E1065), Color(0xFF1E1B4B), Color(0xFF0F172A)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
                         ),
-
-                        if (!isMobile) const SizedBox(width: 12),
-
-                        // RIGHT PANEL: Auth Form Card (Matching Screenshot exactly)
-                        Expanded(
-                          flex: isMobile ? 0 : 6,
-                          child: Container(
-                            padding: EdgeInsets.all(isMobile ? 20 : 36),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E1B2E),
-                              borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF4C1D95).withValues(alpha: 0.8),
+                                Colors.black.withValues(alpha: 0.45),
+                                const Color(0xFF0F172A).withValues(alpha: 0.9),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // Title Heading
-                                Text(
-                                  _isGateRegisterMode ? 'Create an account' : 'Welcome back',
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-
-                                // Already have an account? Log in toggle
-                                Row(
-                                  children: [
-                                    Text(
-                                      _isGateRegisterMode ? 'Already have an account? ' : "Don't have an account? ",
-                                      style: const TextStyle(color: Colors.white60, fontSize: 14),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setAuthGateState(() {
-                                          _isGateRegisterMode = !_isGateRegisterMode;
-                                        });
-                                      },
-                                      child: Text(
-                                        _isGateRegisterMode ? 'Log in' : 'Sign up',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          decoration: TextDecoration.underline,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 28),
-
-                                if (_isAuthLoading) ...[
-                                  const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 40),
-                                      child: Column(
-                                        children: [
-                                          CircularProgressIndicator(color: Color(0xFF818CF8)),
-                                          SizedBox(height: 16),
-                                          Text('Authenticating workspace session...', style: TextStyle(color: Colors.white70)),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ] else ...[
-                                  // Form Input Fields
-                                  if (_isGateRegisterMode) ...[
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: TextField(
-                                            controller: _authNameController,
-                                            style: const TextStyle(color: Colors.white, fontSize: 14),
-                                            decoration: InputDecoration(
-                                              hintText: 'First name',
-                                              hintStyle: const TextStyle(color: Colors.white38),
-                                              filled: true,
-                                              fillColor: const Color(0xFF2A2640),
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
-                                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
-                                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF818CF8), width: 1.5)),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: TextField(
-                                            controller: _authLastNameController,
-                                            style: const TextStyle(color: Colors.white, fontSize: 14),
-                                            decoration: InputDecoration(
-                                              hintText: 'Last name',
-                                              hintStyle: const TextStyle(color: Colors.white38),
-                                              filled: true,
-                                              fillColor: const Color(0xFF2A2640),
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
-                                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
-                                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF818CF8), width: 1.5)),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 14),
-                                  ],
-
-                                  // Email Field
-                                  TextField(
-                                    controller: _authEmailController,
-                                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                                    decoration: InputDecoration(
-                                      hintText: 'Email',
-                                      hintStyle: const TextStyle(color: Colors.white38),
-                                      filled: true,
-                                      fillColor: const Color(0xFF2A2640),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
-                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
-                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF818CF8), width: 1.5)),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-
-                                  // Password Field with Eye Toggle
-                                  TextField(
-                                    controller: _authPasswordController,
-                                    obscureText: _obscurePassword,
-                                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                                    decoration: InputDecoration(
-                                      hintText: 'Enter your password',
-                                      hintStyle: const TextStyle(color: Colors.white38),
-                                      filled: true,
-                                      fillColor: const Color(0xFF2A2640),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                          color: Colors.white54,
-                                          size: 20,
-                                        ),
-                                        onPressed: () {
-                                          setAuthGateState(() {
-                                            _obscurePassword = !_obscurePassword;
-                                          });
-                                        },
-                                      ),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
-                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
-                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF818CF8), width: 1.5)),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-
-                                  // Terms & Conditions Checkbox
+                          ),
+                          padding: const EdgeInsets.all(28),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Top Brand Header & Back Button
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
                                   Row(
                                     children: [
-                                      SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: Checkbox(
-                                          value: _agreedToTerms,
-                                          activeColor: const Color(0xFF7C3AED),
-                                          checkColor: Colors.white,
-                                          side: const BorderSide(color: Colors.white54),
-                                          onChanged: (val) {
-                                            setAuthGateState(() {
-                                              _agreedToTerms = val ?? true;
-                                            });
-                                          },
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(10),
                                         ),
+                                        child: const Icon(Icons.flight_takeoff, color: Colors.white, size: 22),
                                       ),
                                       const SizedBox(width: 10),
-                                      const Expanded(
-                                        child: Text(
-                                          'I agree to the Terms & Conditions',
-                                          style: TextStyle(color: Colors.white70, fontSize: 13),
-                                        ),
+                                      const Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'AMU',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 20,
+                                              letterSpacing: 2.0,
+                                            ),
+                                          ),
+                                          Text(
+                                            'AI Travel Copilot',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 24),
-
-                                  // Primary Create Account Button
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF6B46C1),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        elevation: 0,
-                                      ),
-                                      onPressed: () async {
-                                        final email = _authEmailController.text.trim();
-                                        final pass = _authPasswordController.text.trim();
-                                        final firstName = _authNameController.text.trim();
-                                        final lastName = _authLastNameController.text.trim();
-                                        final fullName = lastName.isNotEmpty ? '$firstName $lastName' : firstName;
-
-                                        if (email.isEmpty || !email.contains('@')) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Please enter a valid email address.'), backgroundColor: Colors.red),
-                                          );
-                                          return;
-                                        }
-                                        if (pass.isEmpty || pass.length < 6) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Password must be at least 6 characters long.'), backgroundColor: Colors.red),
-                                          );
-                                          return;
-                                        }
-
-                                        setState(() => _isAuthLoading = true);
-
-                                        if (_isGateRegisterMode) {
-                                          if (fullName.isEmpty) {
-                                            setState(() => _isAuthLoading = false);
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Please enter your name.'), backgroundColor: Colors.red),
-                                            );
-                                            return;
-                                          }
-                                          final res = await ApiService.register(email, pass, fullName);
-                                          setState(() => _isAuthLoading = false);
-                                          if (res['success'] == true && res['data'] != null) {
-                                            final data = res['data'];
-                                            _saveAuthSession(data['access_token'], data['user']);
-                                            setState(() {
-                                              _isLoggedIn = true;
-                                              _userToken = data['access_token'];
-                                              _userName = data['user']['name'] ?? fullName;
-                                              _userEmail = email;
-                                              _userPhotoUrl = data['user']['photo_url'];
-                                              _authProvider = 'email';
-                                            });
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('🎉 Account created successfully! Welcome, $_userName.'),
-                                                backgroundColor: const Color(0xFF10B981),
-                                              ),
-                                            );
-                                          } else {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text(res['error'] ?? 'Registration failed.'), backgroundColor: Colors.red),
-                                            );
-                                          }
-                                        } else {
-                                          final res = await ApiService.login(email, pass);
-                                          setState(() => _isAuthLoading = false);
-                                          if (res['success'] == true && res['data'] != null) {
-                                            final data = res['data'];
-                                            _saveAuthSession(data['access_token'], data['user']);
-                                            setState(() {
-                                              _isLoggedIn = true;
-                                              _userToken = data['access_token'];
-                                              _userName = data['user']['name'] ?? email.split('@')[0];
-                                              _userEmail = email;
-                                              _userPhotoUrl = data['user']['photo_url'];
-                                              _authProvider = 'email';
-                                            });
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('🎉 Welcome back, $_userName!'),
-                                                backgroundColor: const Color(0xFF10B981),
-                                              ),
-                                            );
-                                          } else {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text(res['error'] ?? 'Incorrect email or password.'), backgroundColor: Colors.red),
-                                            );
-                                          }
-                                        }
-                                      },
-                                      child: Text(
-                                        _isGateRegisterMode ? 'Create account' : 'Sign in to account',
-                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                      ),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Please sign in or create an account to access the workspace.')),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.arrow_forward, size: 14, color: Colors.white70),
+                                    label: const Text('Back to website', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                    style: TextButton.styleFrom(
+                                      backgroundColor: Colors.white.withValues(alpha: 0.15),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                     ),
                                   ),
-                                  const SizedBox(height: 24),
+                                ],
+                              ),
 
-                                  // Divider "Or register with"
-                                  const Row(
-                                    children: [
-                                      Expanded(child: Divider(color: Colors.white24)),
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 12),
-                                        child: Text('Or register with', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                                      ),
-                                      Expanded(child: Divider(color: Colors.white24)),
-                                    ],
+                              // Bottom Tagline & Carousel Dots
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Capturing Moments,\nCreating Memories',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      height: 1.25,
+                                    ),
                                   ),
                                   const SizedBox(height: 20),
-
-                                  // Social Buttons (Google & Apple)
                                   Row(
                                     children: [
-                                      Expanded(
-                                        child: OutlinedButton.icon(
-                                          style: OutlinedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF2A2640),
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(vertical: 14),
-                                            side: const BorderSide(color: Color(0xFF3F3A5C)),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          ),
-                                          icon: Image.network(
-                                            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/768px-Google_%22G%22_logo.svg.png',
-                                            width: 18,
-                                            height: 18,
-                                            errorBuilder: (c, o, s) => const Icon(Icons.g_mobiledata, color: Colors.red),
-                                          ),
-                                          label: const Text('Google', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                          onPressed: _performGoogleSignIn,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: OutlinedButton.icon(
-                                          style: OutlinedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF2A2640),
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(vertical: 14),
-                                            side: const BorderSide(color: Color(0xFF3F3A5C)),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                          ),
-                                          icon: const Icon(Icons.apple, color: Colors.white, size: 20),
-                                          label: const Text('Apple', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                          onPressed: () {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Apple OAuth is enabled for iOS devices. Please use Google or Email credentials.')),
-                                            );
-                                          },
-                                        ),
-                                      ),
+                                      Container(width: 24, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2))),
+                                      const SizedBox(width: 6),
+                                      Container(width: 24, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2))),
+                                      const SizedBox(width: 6),
+                                      Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(2))),
                                     ],
                                   ),
                                 ],
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      );
+                    }
+
+                    Widget buildRightFormCard() {
+                      return Container(
+                        padding: EdgeInsets.all(isMobile ? 20 : 32),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E1B2E),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Title Heading
+                            Text(
+                              _isGateRegisterMode ? 'Create an account' : 'Welcome back',
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Already have an account? Log in toggle
+                            Row(
+                              children: [
+                                Text(
+                                  _isGateRegisterMode ? 'Already have an account? ' : "Don't have an account? ",
+                                  style: const TextStyle(color: Colors.white60, fontSize: 14),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setAuthGateState(() {
+                                      _isGateRegisterMode = !_isGateRegisterMode;
+                                    });
+                                  },
+                                  child: Text(
+                                    _isGateRegisterMode ? 'Log in' : 'Sign up',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            if (_isAuthLoading) ...[
+                              const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 40),
+                                  child: Column(
+                                    children: [
+                                      CircularProgressIndicator(color: Color(0xFF818CF8)),
+                                      SizedBox(height: 16),
+                                      Text('Authenticating workspace session...', style: TextStyle(color: Colors.white70)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
+                              // Form Input Fields
+                              if (_isGateRegisterMode) ...[
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _authNameController,
+                                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                                        decoration: InputDecoration(
+                                          hintText: 'First name',
+                                          hintStyle: const TextStyle(color: Colors.white38),
+                                          filled: true,
+                                          fillColor: const Color(0xFF2A2640),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
+                                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
+                                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF818CF8), width: 1.5)),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _authLastNameController,
+                                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                                        decoration: InputDecoration(
+                                          hintText: 'Last name',
+                                          hintStyle: const TextStyle(color: Colors.white38),
+                                          filled: true,
+                                          fillColor: const Color(0xFF2A2640),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
+                                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
+                                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF818CF8), width: 1.5)),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                              ],
+
+                              // Email Field
+                              TextField(
+                                controller: _authEmailController,
+                                style: const TextStyle(color: Colors.white, fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: 'Email',
+                                  hintStyle: const TextStyle(color: Colors.white38),
+                                  filled: true,
+                                  fillColor: const Color(0xFF2A2640),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF818CF8), width: 1.5)),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Password Field with Eye Toggle
+                              TextField(
+                                controller: _authPasswordController,
+                                obscureText: _obscurePassword,
+                                style: const TextStyle(color: Colors.white, fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: 'Enter your password',
+                                  hintStyle: const TextStyle(color: Colors.white38),
+                                  filled: true,
+                                  fillColor: const Color(0xFF2A2640),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                      color: Colors.white54,
+                                      size: 20,
+                                    ),
+                                    onPressed: () {
+                                      setAuthGateState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                  ),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3F3A5C))),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF818CF8), width: 1.5)),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Terms & Conditions Checkbox
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: Checkbox(
+                                      value: _agreedToTerms,
+                                      activeColor: const Color(0xFF7C3AED),
+                                      checkColor: Colors.white,
+                                      side: const BorderSide(color: Colors.white54),
+                                      onChanged: (val) {
+                                        setAuthGateState(() {
+                                          _agreedToTerms = val ?? true;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      'I agree to the Terms & Conditions',
+                                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 22),
+
+                              // Primary Create Account Button
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF6B46C1),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    elevation: 0,
+                                  ),
+                                  onPressed: () async {
+                                    final email = _authEmailController.text.trim();
+                                    final pass = _authPasswordController.text.trim();
+                                    final firstName = _authNameController.text.trim();
+                                    final lastName = _authLastNameController.text.trim();
+                                    final fullName = lastName.isNotEmpty ? '$firstName $lastName' : firstName;
+
+                                    if (email.isEmpty || !email.contains('@')) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Please enter a valid email address.'), backgroundColor: Colors.red),
+                                      );
+                                      return;
+                                    }
+                                    if (pass.isEmpty || pass.length < 6) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Password must be at least 6 characters long.'), backgroundColor: Colors.red),
+                                      );
+                                      return;
+                                    }
+
+                                    setState(() => _isAuthLoading = true);
+
+                                    if (_isGateRegisterMode) {
+                                      if (fullName.isEmpty) {
+                                        setState(() => _isAuthLoading = false);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Please enter your name.'), backgroundColor: Colors.red),
+                                        );
+                                        return;
+                                      }
+                                      final res = await ApiService.register(email, pass, fullName);
+                                      setState(() => _isAuthLoading = false);
+                                      if (res['success'] == true && res['data'] != null) {
+                                        final data = res['data'];
+                                        _saveAuthSession(data['access_token'], data['user']);
+                                        setState(() {
+                                          _isLoggedIn = true;
+                                          _userToken = data['access_token'];
+                                          _userName = data['user']['name'] ?? fullName;
+                                          _userEmail = email;
+                                          _userPhotoUrl = data['user']['photo_url'];
+                                          _authProvider = 'email';
+                                        });
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('🎉 Account created successfully! Welcome, $_userName.'),
+                                            backgroundColor: const Color(0xFF10B981),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text(res['error'] ?? 'Registration failed.'), backgroundColor: Colors.red),
+                                        );
+                                      }
+                                    } else {
+                                      final res = await ApiService.login(email, pass);
+                                      setState(() => _isAuthLoading = false);
+                                      if (res['success'] == true && res['data'] != null) {
+                                        final data = res['data'];
+                                        _saveAuthSession(data['access_token'], data['user']);
+                                        setState(() {
+                                          _isLoggedIn = true;
+                                          _userToken = data['access_token'];
+                                          _userName = data['user']['name'] ?? email.split('@')[0];
+                                          _userEmail = email;
+                                          _userPhotoUrl = data['user']['photo_url'];
+                                          _authProvider = 'email';
+                                        });
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('🎉 Welcome back, $_userName!'),
+                                            backgroundColor: const Color(0xFF10B981),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text(res['error'] ?? 'Incorrect email or password.'), backgroundColor: Colors.red),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  child: Text(
+                                    _isGateRegisterMode ? 'Create account' : 'Sign in to account',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Divider "Or register with"
+                              const Row(
+                                children: [
+                                  Expanded(child: Divider(color: Colors.white24)),
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 12),
+                                    child: Text('Or register with', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                  ),
+                                  Expanded(child: Divider(color: Colors.white24)),
+                                ],
+                              ),
+                              const SizedBox(height: 18),
+
+                              // Social Buttons (Google & Apple)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF2A2640),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        side: const BorderSide(color: Color(0xFF3F3A5C)),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                      icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 24),
+                                      label: const Text('Google', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      onPressed: _performGoogleSignIn,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF2A2640),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        side: const BorderSide(color: Color(0xFF3F3A5C)),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                      icon: const Icon(Icons.apple, color: Colors.white, size: 20),
+                                      label: const Text('Apple', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Apple OAuth is enabled for iOS devices. Please use Google or Email credentials.')),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (isMobile) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          buildLeftHeroCard(),
+                          const SizedBox(height: 12),
+                          buildRightFormCard(),
+                        ],
+                      );
+                    }
+
+                    return SizedBox(
+                      height: 620,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(flex: 5, child: buildLeftHeroCard()),
+                          const SizedBox(width: 12),
+                          Expanded(flex: 6, child: buildRightFormCard()),
+                        ],
+                      ),
                     );
                   },
                 ),
