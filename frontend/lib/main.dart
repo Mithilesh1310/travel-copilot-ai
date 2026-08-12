@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -195,15 +196,35 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   LatLng _exploreMapCenter = const LatLng(28.6139, 77.2090);
   AttractionStop? _activeNavStop;
 
+  Timer? _heroCarouselTimer;
+
   @override
   void initState() {
     super.initState();
+    _startHeroCarouselTimer();
     _restoreAuthSession();
     _loadInitialData();
     _initChat();
     _loadBudgetReport();
     _loadExploreMissions();
     _handlePlanExplore();
+  }
+
+  @override
+  void dispose() {
+    _heroCarouselTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startHeroCarouselTimer() {
+    _heroCarouselTimer?.cancel();
+    _heroCarouselTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted && !_isLoggedIn) {
+        setState(() {
+          _heroImageIndex = (_heroImageIndex + 1) % _heroSlides.length;
+        });
+      }
+    });
   }
 
   void _restoreAuthSession() async {
@@ -5646,22 +5667,28 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                         borderRadius: BorderRadius.circular(20),
                         child: Stack(
                           children: [
-                            // Aesthetic Destination Background Image with Fallback Gradient
+                            // Aesthetic Destination Background Image with Smooth Cross-Fade Animation
                             Positioned.fill(
-                              child: Image.network(
-                                currentSlide['image']!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    decoration: const BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [Color(0xFF3B0764), Color(0xFF1E1B4B), Color(0xFF0F172A)],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 700),
+                                child: Image.network(
+                                  currentSlide['image']!,
+                                  key: ValueKey<int>(_heroImageIndex),
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      decoration: const BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [Color(0xFF3B0764), Color(0xFF1E1B4B), Color(0xFF0F172A)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
+                                    );
+                                  },
+                                ),
                               ),
                             ),
 
@@ -5784,6 +5811,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                                               setAuthGateState(() {
                                                 _heroImageIndex = idx;
                                               });
+                                              _startHeroCarouselTimer();
                                             },
                                             child: AnimatedContainer(
                                               duration: const Duration(milliseconds: 300),
