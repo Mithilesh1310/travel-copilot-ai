@@ -1,9 +1,53 @@
 import os
 import json
 import random
+import re
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Tuple
 from .routing_engine import find_routes_dijkstra, RouterEdge
 from .live_travel_api import live_travel_service
+
+def parse_date_from_text(msg: str) -> str:
+    """
+    Parses date mentioned in user message (e.g. 'tomorrow', 'today', '20 August', '15-08-2026', '2026-08-20').
+    Defaults to today's date if no date is specified.
+    """
+    today = datetime.now()
+    msg_lower = msg.lower()
+    
+    if "tomorrow" in msg_lower or "kal" in msg_lower:
+        return (today + timedelta(days=1)).strftime("%Y-%m-%d")
+    elif "day after tomorrow" in msg_lower or "parso" in msg_lower:
+        return (today + timedelta(days=2)).strftime("%Y-%m-%d")
+    elif "next week" in msg_lower:
+        return (today + timedelta(days=7)).strftime("%Y-%m-%d")
+    
+    # Regex match YYYY-MM-DD
+    match_iso = re.search(r'\b(202[4-9])-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\b', msg)
+    if match_iso:
+        return match_iso.group(0)
+
+    # Regex match DD/MM/YYYY or DD-MM-YYYY
+    match_dmy = re.search(r'\b(0[1-9]|[12]\d|3[01])[-/](0[1-9]|1[0-2])[-/](202[4-9])\b', msg)
+    if match_dmy:
+        d, m, y = match_dmy.groups()
+        return f"{y}-{m}-{d}"
+        
+    # Match month names e.g. "20 august", "25 aug", "15 sept"
+    months = {
+        "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+        "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
+        "aug": 8, "august": 8, "sep": 9, "september": 9, "oct": 10, "october": 10,
+        "nov": 11, "november": 11, "dec": 12, "december": 12
+    }
+    for month_name, month_num in months.items():
+        match_mon = re.search(r'\b(\d{1,2})\s*(st|nd|rd|th)?\s*' + month_name + r'\b|\b' + month_name + r'\s*(\d{1,2})\b', msg_lower)
+        if match_mon:
+            day = int(match_mon.group(1) or match_mon.group(3))
+            year = today.year if (month_num > today.month or (month_num == today.month and day >= today.day)) else today.year + 1
+            return f"{year}-{month_num:02d}-{day:02d}"
+
+    return today.strftime("%Y-%m-%d")
 
 # Load environment variables from .env if present
 try:
@@ -109,13 +153,15 @@ class PlannerAgent:
             }
 
         # Attempt Gemini AI Intent Parsing for route queries
+        today_str = datetime.now().strftime("%Y-%m-%d")
         if os.environ.get("GEMINI_API_KEY", "").strip():
             system_prompt = (
-                "You are an AI Travel Copilot Intent Parser. "
+                f"Today's date is {today_str}. You are an AI Travel Copilot Intent Parser. "
                 "Determine if the user wants to search for a travel route. "
                 "If it's a general question or greeting, return JSON: {\"is_search_intent\": false}. "
                 "If it is a route query, return JSON: {\"is_search_intent\": true, \"origin\": string, \"destination\": string, "
-                "\"start_date\": string, \"budget\": number or null, \"preferences\": {\"optimize_by\": string, \"non_stop\": boolean, \"refundable\": boolean, \"eco_friendly\": boolean}}."
+                "\"start_date\": string, \"budget\": number or null, \"preferences\": {\"optimize_by\": string, \"non_stop\": boolean, \"refundable\": boolean, \"eco_friendly\": boolean}}. "
+                "If user specifies a date like 'tomorrow', 'next Monday', '20 August', calculate exact YYYY-MM-DD from today's date. If no date specified, set start_date to today's date."
             )
             gemini_res = call_gemini_api(msg, system_instruction=system_prompt, response_json=True)
             if gemini_res:
@@ -131,7 +177,7 @@ class PlannerAgent:
                             "is_search_intent": True,
                             "origin": str(data["origin"]).title(),
                             "destination": str(data["destination"]).title(),
-                            "start_date": data.get("start_date") or "2026-10-15",
+                            "start_date": data.get("start_date") or parse_date_from_text(msg),
                             "budget": float(data["budget"]) if data.get("budget") else None,
                             "preferences": pref
                         }
@@ -275,7 +321,7 @@ class PlannerAgent:
             "is_search_intent": True,
             "origin": origin,
             "destination": destination,
-            "start_date": "2026-10-15",
+            "start_date": parse_date_from_text(msg),
             "budget": budget,
             "preferences": preferences
         }
@@ -859,15 +905,24 @@ class TravelAgentSystem:
                 f"• **Baggage Allowance**: Standard International Allowance is 25kg–30kg checked baggage + 7kg cabin baggage."
             )
 
+        travel_date_raw = parsed.get("start_date") or datetime.now().strftime("%Y-%m-%d")
+        try:
+            dt_obj = datetime.strptime(travel_date_raw, "%Y-%m-%d")
+            formatted_date = dt_obj.strftime("%d %b %Y (%A)")
+        except Exception:
+            formatted_date = travel_date_raw
+
         reply = (
-            f"I have analyzed global multi-modal travel routes between **{origin}** and **{destination}** "
+            f"📅 **Travel Departure Date**: **{formatted_date}**\n\n"
+            f"I have analyzed live multi-modal travel routes between **{origin}** and **{destination}** for **{formatted_date}** "
             f"focusing on your preferences: **{parsed['preferences']['optimize_by'].replace('_', ' ').title()}**.\n\n"
-            f"I recommend an international hybrid itinerary: **{results[0]['legs'][0]['transport_type']} → "
+            f"I recommend a multi-modal itinerary: **{results[0]['legs'][0]['transport_type']} → "
             f"{results[0]['legs'][-1]['transport_type']}**, taking **{results[0]['total_duration']} hours** and costing "
             f"**₹{results[0]['total_price']:.0f}**."
             f"{cab_summary}"
             f"{global_advice}\n\n"
-            f"*AI Recommendation Rationale:* {results[0]['ai_explanation']}"
+            f"*AI Recommendation Rationale:* {results[0]['ai_explanation']}\n\n"
+            f"💡 *Want to search a different date? Ask me anytime e.g. 'Show flights for 25th August' or 'Search routes for tomorrow'!*"
         )
         
         follow_ups = [
