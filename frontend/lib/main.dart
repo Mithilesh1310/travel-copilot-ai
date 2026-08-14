@@ -122,6 +122,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
       TextEditingController(text: 'Kanpur');
   final TextEditingController _destinationController =
       TextEditingController(text: 'Bangalore');
+  final TextEditingController _dateController =
+      TextEditingController(text: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+  DateTime _selectedTravelDate = DateTime.now();
   double _budget = 5000;
   String _selectedOptimizeBy = 'best_value';
   bool _nonStopOnly = false;
@@ -668,7 +671,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     final results = await ApiService.searchTrips(
       origin: _originController.text.trim(),
       destination: _destinationController.text.trim(),
-      startDate: '2026-10-15',
+      startDate: _dateController.text.trim().isNotEmpty
+          ? _dateController.text.trim()
+          : DateFormat('yyyy-MM-dd').format(_selectedTravelDate),
       budget: _budget,
       preferences: {
         'optimize_by': _selectedOptimizeBy,
@@ -1773,85 +1778,146 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Origin and Destination Row with Swap Button
+                // Origin, Destination & Departure Date Row
                 if (isMobile) ...[
-                  TextField(
-                    controller: _originController,
-                    style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
-                    decoration: InputDecoration(
-                      labelText: 'Origin Location / City',
-                      labelStyle: TextStyle(color: labelTextColor),
-                      hintText: 'e.g., PSIT Kanpur, Delhi',
-                      prefixIcon: const Icon(Icons.my_location, color: Color(0xFF6366F1)),
-                      filled: true,
-                      fillColor: inputBg,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: inputBorder),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: IconButton.filled(
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                        foregroundColor: const Color(0xFF6366F1),
-                      ),
-                      icon: const Icon(Icons.swap_vert, size: 20),
-                      onPressed: () {
-                        final temp = _originController.text;
-                        setState(() {
-                          _originController.text = _destinationController.text;
-                          _destinationController.text = temp;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _destinationController,
-                    style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
-                    decoration: InputDecoration(
-                      labelText: 'Destination Location / Country',
-                      labelStyle: TextStyle(color: labelTextColor),
-                      hintText: 'e.g., Bangalore, USA, Tokyo',
-                      prefixIcon: const Icon(Icons.flight_land, color: Color(0xFFA855F7)),
-                      filled: true,
-                      fillColor: inputBg,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: inputBorder),
-                      ),
-                    ),
-                  ),
-                ] else ...[
-                  Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _originController,
-                          style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
-                          decoration: InputDecoration(
-                            labelText: 'Origin Location / City',
-                            labelStyle: TextStyle(color: labelTextColor),
-                            hintText: 'e.g., PSIT Kanpur, Delhi, London',
-                            prefixIcon: const Icon(Icons.my_location, color: Color(0xFF6366F1)),
-                            filled: true,
-                            fillColor: inputBg,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: inputBorder),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: inputBorder),
-                            ),
+                      Text('📍 Origin Location / City', style: TextStyle(color: labelTextColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _originController,
+                        style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                        decoration: InputDecoration(
+                          hintText: 'e.g., PSIT Kanpur, Delhi',
+                          prefixIcon: const Icon(Icons.my_location, color: Color(0xFF6366F1)),
+                          filled: true,
+                          fillColor: inputBg,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
                           ),
                         ),
                       ),
+                      const SizedBox(height: 10),
+                      Center(
+                        child: IconButton.filled(
+                          style: IconButton.styleFrom(
+                            backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                            foregroundColor: const Color(0xFF6366F1),
+                          ),
+                          icon: const Icon(Icons.swap_vert, size: 20),
+                          onPressed: () {
+                            final temp = _originController.text;
+                            setState(() {
+                              _originController.text = _destinationController.text;
+                              _destinationController.text = temp;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text('🛬 Destination Location / Country', style: TextStyle(color: labelTextColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _destinationController,
+                        style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                        decoration: InputDecoration(
+                          hintText: 'e.g., Bangalore, USA, Tokyo',
+                          prefixIcon: const Icon(Icons.flight_land, color: Color(0xFFA855F7)),
+                          filled: true,
+                          fillColor: inputBg,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text('📅 Departure Date', style: TextStyle(color: labelTextColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _dateController,
+                        readOnly: true,
+                        style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedTravelDate,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              _selectedTravelDate = picked;
+                              _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
+                            });
+                          }
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'YYYY-MM-DD',
+                          prefixIcon: const Icon(Icons.calendar_today, color: Color(0xFF10B981)),
+                          suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                          filled: true,
+                          fillColor: inputBg,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('📍 Origin Location / City', style: TextStyle(color: labelTextColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _originController,
+                              style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                              decoration: InputDecoration(
+                                hintText: 'e.g., PSIT Kanpur, Delhi, London',
+                                prefixIcon: const Icon(Icons.my_location, color: Color(0xFF6366F1)),
+                                filled: true,
+                                fillColor: inputBg,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: inputBorder),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: inputBorder),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         child: IconButton.filled(
                           style: IconButton.styleFrom(
                             backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
@@ -1868,25 +1934,78 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                         ),
                       ),
                       Expanded(
-                        child: TextField(
-                          controller: _destinationController,
-                          style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
-                          decoration: InputDecoration(
-                            labelText: 'Destination Location / Country',
-                            labelStyle: TextStyle(color: labelTextColor),
-                            hintText: 'e.g., Bangalore, USA, Tokyo, Dubai',
-                            prefixIcon: const Icon(Icons.flight_land, color: Color(0xFFA855F7)),
-                            filled: true,
-                            fillColor: inputBg,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: inputBorder),
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('🛬 Destination Location / Country', style: TextStyle(color: labelTextColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _destinationController,
+                              style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                              decoration: InputDecoration(
+                                hintText: 'e.g., Bangalore, USA, Tokyo, Dubai',
+                                prefixIcon: const Icon(Icons.flight_land, color: Color(0xFFA855F7)),
+                                filled: true,
+                                fillColor: inputBg,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: inputBorder),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: inputBorder),
+                                ),
+                              ),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: inputBorder),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('📅 Departure Date', style: TextStyle(color: labelTextColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _dateController,
+                              readOnly: true,
+                              style: TextStyle(fontWeight: FontWeight.w600, color: inputTextColor),
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _selectedTravelDate,
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                                );
+                                if (picked != null) {
+                                  setState(() {
+                                    _selectedTravelDate = picked;
+                                    _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
+                                  });
+                                }
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'YYYY-MM-DD',
+                                prefixIcon: const Icon(Icons.calendar_today, color: Color(0xFF10B981)),
+                                suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                                filled: true,
+                                fillColor: inputBg,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: inputBorder),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: inputBorder),
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ],
@@ -1948,31 +2067,42 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    value: _selectedOptimizeBy,
-                    style: TextStyle(color: inputTextColor, fontWeight: FontWeight.bold),
-                    dropdownColor: inputBg,
-                    decoration: InputDecoration(
-                      labelText: 'AI Optimization Priority',
-                      labelStyle: TextStyle(color: labelTextColor),
-                      filled: true,
-                      fillColor: inputBg,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: inputBorder),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('✨ AI Optimization Priority', style: TextStyle(color: labelTextColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        value: _selectedOptimizeBy,
+                        style: TextStyle(color: inputTextColor, fontWeight: FontWeight.bold),
+                        dropdownColor: inputBg,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: inputBg,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: inputBorder),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'best_value', child: Text('✨ Best Value (Hybrid)')),
+                          DropdownMenuItem(value: 'cheapest', child: Text('💰 Cheapest Fare')),
+                          DropdownMenuItem(value: 'fastest', child: Text('⚡ Fastest Non-Stop')),
+                          DropdownMenuItem(value: 'eco_friendly', child: Text('🌿 Eco Friendly (CO2)')),
+                          DropdownMenuItem(value: 'lowest_risk', child: Text('🛡️ Lowest Delay Risk')),
+                        ],
+                        onChanged: (v) => setState(() => _selectedOptimizeBy = v!),
                       ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'best_value', child: Text('✨ Best Value (Hybrid)')),
-                      DropdownMenuItem(value: 'cheapest', child: Text('💰 Cheapest Fare')),
-                      DropdownMenuItem(value: 'fastest', child: Text('⚡ Fastest Non-Stop')),
-                      DropdownMenuItem(value: 'eco_friendly', child: Text('🌿 Eco Friendly (CO2)')),
-                      DropdownMenuItem(value: 'lowest_risk', child: Text('🛡️ Lowest Delay Risk')),
                     ],
-                    onChanged: (v) => setState(() => _selectedOptimizeBy = v!),
                   ),
                 ] else ...[
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         flex: 3,
@@ -2024,32 +2154,38 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       const SizedBox(width: 24),
                       Expanded(
                         flex: 2,
-                        child: DropdownButtonFormField<String>(
-                          value: _selectedOptimizeBy,
-                          style: TextStyle(color: inputTextColor, fontWeight: FontWeight.bold),
-                          dropdownColor: inputBg,
-                          decoration: InputDecoration(
-                            labelText: 'AI Optimization Priority',
-                            labelStyle: TextStyle(color: labelTextColor),
-                            filled: true,
-                            fillColor: inputBg,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: inputBorder),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('✨ AI Optimization Priority', style: TextStyle(color: labelTextColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 6),
+                            DropdownButtonFormField<String>(
+                              value: _selectedOptimizeBy,
+                              style: TextStyle(color: inputTextColor, fontWeight: FontWeight.bold),
+                              dropdownColor: inputBg,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: inputBg,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: inputBorder),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: inputBorder),
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'best_value', child: Text('✨ Best Value (Hybrid)')),
+                                DropdownMenuItem(value: 'cheapest', child: Text('💰 Cheapest Fare')),
+                                DropdownMenuItem(value: 'fastest', child: Text('⚡ Fastest Non-Stop')),
+                                DropdownMenuItem(value: 'eco_friendly', child: Text('🌿 Eco Friendly (CO2)')),
+                                DropdownMenuItem(value: 'lowest_risk', child: Text('🛡️ Lowest Delay Risk')),
+                              ],
+                              onChanged: (v) => setState(() => _selectedOptimizeBy = v!),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide(color: inputBorder),
-                            ),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: 'best_value', child: Text('✨ Best Value (Hybrid)')),
-                            DropdownMenuItem(value: 'cheapest', child: Text('💰 Cheapest Fare')),
-                            DropdownMenuItem(value: 'fastest', child: Text('⚡ Fastest Non-Stop')),
-                            DropdownMenuItem(value: 'eco_friendly', child: Text('🌿 Eco Friendly (CO2)')),
-                            DropdownMenuItem(value: 'lowest_risk', child: Text('🛡️ Lowest Delay Risk')),
                           ],
-                          onChanged: (v) => setState(() => _selectedOptimizeBy = v!),
                         ),
                       ),
                     ],
