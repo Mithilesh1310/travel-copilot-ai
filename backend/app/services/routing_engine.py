@@ -341,6 +341,13 @@ def generate_graph(origin: str, destination: str, preferences: dict = None) -> T
         station_auto_fare, org_info["station_time_hrs"] + 0.1, "08:05", "08:55",
         0.05, 5.0, 5.0, "Refundable"
     ))
+    # Direct city train station access (allows pure Train routing when Cab is disabled)
+    add_edge(RouterEdge(
+        org, org_hubs["station"],
+        "Train", f"Local Station Access ({org_info['station_distance_km']} km)",
+        0.0, 0.2, "08:00", "08:15",
+        0.0, 0.0, 0.0, "Refundable"
+    ))
 
     # Origin -> Airport
     if org_hubs["has_local_airport"]:
@@ -389,6 +396,7 @@ def generate_graph(origin: str, destination: str, preferences: dict = None) -> T
         # Destination Station -> Destination (Domestic Only)
         add_edge(RouterEdge(dst_hubs["station"], dst, "Cab", "Auto Rickshaw / Taxi", 150, 0.4, "12:00", "12:24", 0.05, 5.0, 8.0, "Refundable"))
         add_edge(RouterEdge(dst_hubs["station"], dst, "Metro", "Local Metro", 30, 0.3, "12:00", "12:18", 0.01, 1.0, 0.9, "Refundable"))
+        add_edge(RouterEdge(dst_hubs["station"], dst, "Train", "City Destination Access", 0.0, 0.2, "12:00", "12:15", 0.0, 0.0, 0.0, "Refundable"))
 
     # 3. Add Long Distance Flights (International or Domestic)
     if is_international:
@@ -442,23 +450,50 @@ def generate_graph(origin: str, destination: str, preferences: dict = None) -> T
             add_edge(RouterEdge(org_hubs["airport"], connecting_airport, "Flight", "IndiGo 6E-6101", 3000, 1.2, "10:00", "11:12", 0.05, 8.0, 90.0, "Non-refundable"))
             add_edge(RouterEdge(connecting_airport, dst_hubs["airport"], "Flight", "IndiGo 6E-2401", 3500, 2.0, "13:30", "15:30", 0.09, 14.0, 160.0, "Non-refundable"))
 
-        # DOMESTIC ONLY: Add Live Trains (Station -> Station)
+        # DOMESTIC ONLY: Add Live Trains (Station -> Station & Direct City -> City)
         live_trains = live_travel_service.fetch_live_trains(org, dst)
         for t in live_trains:
             add_edge(RouterEdge(
                 org_hubs["station"], dst_hubs["station"],
                 "Train", f"{t['provider']} ({t.get('seat_class', 'Sleeper')})",
-                t["price"], t.get("duration", 12.0), t["departure_time"], t["arrival_time"],
-                t["delay_prob"], t["avg_delay"], t.get("carbon", 40.0),
+                t["price"], t.get("duration", 1.5), t["departure_time"], t["arrival_time"],
+                t["delay_prob"], t["avg_delay"], t.get("carbon", 25.0),
+                "Refundable"
+            ))
+            add_edge(RouterEdge(
+                org, dst,
+                "Train", f"{t['provider']} ({t.get('seat_class', 'Sleeper')})",
+                t["price"], t.get("duration", 1.5), t["departure_time"], t["arrival_time"],
+                t["delay_prob"], t["avg_delay"], t.get("carbon", 25.0),
                 "Refundable"
             ))
 
         # DOMESTIC ONLY: Intercity Direct Buses (Origin -> Destination)
+        from .live_travel_api import estimate_city_distance_km
+        bus_dist = estimate_city_distance_km(org, dst)
+        bus_duration = max(1.2, round(bus_dist / 50.0, 1))
+
+        bus_non_ac_fare = float(round(max(90.0, min(bus_dist * 1.5, 1800.0))))
+        bus_semi_sleeper_fare = float(round(max(160.0, min(bus_dist * 2.2, 2400.0))))
+        bus_volvo_fare = float(round(max(280.0, min(bus_dist * 3.2, 3500.0))))
+
         add_edge(RouterEdge(
             org, dst,
-            "Bus", "KSRTC / Zingbus Sleeper",
-            1200, 14.0, "18:00", "08:00",
-            0.20, 30.0, 75.0, "Partial Refund"
+            "Bus", "State Roadways / Local Express (Non-AC Seater)",
+            bus_non_ac_fare, bus_duration, "07:00", "09:00",
+            0.15, 15.0, round(bus_dist * 0.04, 1), "Refundable"
+        ))
+        add_edge(RouterEdge(
+            org, dst,
+            "Bus", "UPSRTC / Intercity AC Semi-Sleeper",
+            bus_semi_sleeper_fare, bus_duration, "18:00", "20:00",
+            0.12, 10.0, round(bus_dist * 0.05, 1), "Partial Refund"
+        ))
+        add_edge(RouterEdge(
+            org, dst,
+            "Bus", "Zingbus / Volvo Multi-Axle AC Sleeper",
+            bus_volvo_fare, bus_duration, "22:00", "00:00",
+            0.08, 8.0, round(bus_dist * 0.06, 1), "Refundable"
         ))
 
     return nodes, edges
