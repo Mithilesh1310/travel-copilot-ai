@@ -268,17 +268,18 @@ def generate_graph(origin: str, destination: str, preferences: dict = None) -> T
         if t_lower == "train" and train_classes:
             match = False
             for tc in train_classes:
-                if ("vande" in tc and "vande" in prov) or \
-                   ("sleeper" in tc and ("sl" in prov or "sleeper" in prov)) or \
-                   ("3a" in tc and ("3a" in prov or "3 tier" in prov)) or \
-                   ("2a" in tc and ("2a" in prov or "2 tier" in prov)) or \
-                   ("1a" in tc and ("1a" in prov or "first" in prov)) or \
-                   ("chair" in tc and ("cc" in prov or "chair" in prov)) or \
-                   ("executive" in tc and ("ec" in prov or "executive" in prov)) or \
-                   ("general" in tc and ("unreserved" in prov or "general" in prov)):
+                tc_l = tc.lower()
+                if ("vande" in tc_l and "vande" in prov) or \
+                   ("sleeper" in tc_l and ("sl" in prov or "sleeper" in prov)) or \
+                   ("3a" in tc_l and ("3a" in prov or "3 tier" in prov or "3rd ac" in prov)) or \
+                   ("2a" in tc_l and ("2a" in prov or "2 tier" in prov or "2nd ac" in prov)) or \
+                   ("1a" in tc_l and ("1a" in prov or "first" in prov or "1st ac" in prov)) or \
+                   ("chair" in tc_l and ("cc" in prov or "chair" in prov)) or \
+                   ("executive" in tc_l and ("ec" in prov or "executive" in prov)) or \
+                   ("general" in tc_l and ("unreserved" in prov or "general" in prov)):
                     match = True
                     break
-            if not match and not any(k in prov for k in ["express", "shatabdi", "rajdhani"]):
+            if not match:
                 return
 
         if t_lower == "bus" and bus_types:

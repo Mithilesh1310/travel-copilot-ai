@@ -234,6 +234,50 @@ class LiveTravelAPIService:
         """
         return [
             {
+                "provider": "Superfast Express (12555)",
+                "departure_time": "17:00",
+                "arrival_time": "06:30",
+                "duration": 13.5,
+                "price": 680.0,
+                "delay_prob": 0.12,
+                "avg_delay": 25.0,
+                "carbon": 42.0,
+                "seat_class": "Sleeper (SL)"
+            },
+            {
+                "provider": "Rajdhani Express (12432)",
+                "departure_time": "20:10",
+                "arrival_time": "07:30",
+                "duration": 11.33,
+                "price": 2250.0,
+                "delay_prob": 0.10,
+                "avg_delay": 20.0,
+                "carbon": 48.0,
+                "seat_class": "3rd AC Sleeper (3A)"
+            },
+            {
+                "provider": "Duronto Express (12260)",
+                "departure_time": "21:30",
+                "arrival_time": "08:00",
+                "duration": 10.5,
+                "price": 3100.0,
+                "delay_prob": 0.05,
+                "avg_delay": 10.0,
+                "carbon": 46.0,
+                "seat_class": "AC 2 Tier (2A)"
+            },
+            {
+                "provider": "Tejas Rajdhani Express (12952)",
+                "departure_time": "16:55",
+                "arrival_time": "08:35",
+                "duration": 15.66,
+                "price": 4400.0,
+                "delay_prob": 0.04,
+                "avg_delay": 8.0,
+                "carbon": 50.0,
+                "seat_class": "First AC (1A)"
+            },
+            {
                 "provider": "Vande Bharat Express (22436)",
                 "departure_time": "06:00",
                 "arrival_time": "12:15",
@@ -256,15 +300,15 @@ class LiveTravelAPIService:
                 "seat_class": "AC Chair Car (CC)"
             },
             {
-                "provider": "Rajdhani Express (12432)",
-                "departure_time": "20:10",
-                "arrival_time": "07:30",
-                "duration": 11.33,
-                "price": 2250.0,
-                "delay_prob": 0.10,
+                "provider": "Jan Shatabdi Express (12059)",
+                "departure_time": "06:15",
+                "arrival_time": "12:30",
+                "duration": 6.25,
+                "price": 320.0,
+                "delay_prob": 0.15,
                 "avg_delay": 20.0,
-                "carbon": 48.0,
-                "seat_class": "3rd AC Sleeper (3A)"
+                "carbon": 38.0,
+                "seat_class": "General / Unreserved"
             }
         ]
 
