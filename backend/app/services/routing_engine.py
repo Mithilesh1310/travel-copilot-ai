@@ -142,13 +142,21 @@ def resolve_global_city(city_name: str) -> Dict[str, Any]:
         "country": "India" if is_indian else "International"
     }
 
-def generate_graph(origin: str, destination: str) -> Tuple[Dict[str, RouterNode], Dict[str, List[RouterEdge]]]:
+def generate_graph(origin: str, destination: str, preferences: dict = None) -> Tuple[Dict[str, RouterNode], Dict[str, List[RouterEdge]]]:
     """
     Dynamically generates a global multi-modal travel connection graph between origin and destination,
     supporting exact pickup locations (e.g. PSIT Kanpur), international flights, trains, buses, local cabs, and metro transfers.
+    Filters routes strictly according to user transport mode and class/comfort preferences.
     """
     nodes = {}
     edges = {}
+
+    pref = preferences or {}
+    enabled_modes = [m.lower() for m in pref.get("enabled_modes", ["Train", "Bus", "Flight", "Cab"])]
+    train_classes = [c.lower() for c in pref.get("train_classes", [])]
+    bus_types = [b.lower() for b in pref.get("bus_types", [])]
+    flight_cabins = [f.lower() for f in pref.get("flight_cabins", [])]
+    cab_types = [c.lower() for c in pref.get("cab_types", [])]
 
     org = origin.strip().title()
     dst = destination.strip().title()
@@ -241,6 +249,77 @@ def generate_graph(origin: str, destination: str) -> Tuple[Dict[str, RouterNode]
         edges[name] = []
 
     def add_edge(edge: RouterEdge):
+        t_lower = edge.transport_type.lower()
+
+        # Mode Filter
+        if enabled_modes:
+            if t_lower == "flight" and "flight" not in enabled_modes:
+                return
+            if t_lower == "train" and "train" not in enabled_modes:
+                return
+            if t_lower == "bus" and "bus" not in enabled_modes:
+                return
+            if t_lower in ["cab", "auto", "taxi"] and "cab" not in enabled_modes and "taxi" not in enabled_modes:
+                return
+
+        prov = edge.provider.lower()
+
+        # Class / Comfort Filter
+        if t_lower == "train" and train_classes:
+            match = False
+            for tc in train_classes:
+                if ("vande" in tc and "vande" in prov) or \
+                   ("sleeper" in tc and ("sl" in prov or "sleeper" in prov)) or \
+                   ("3a" in tc and ("3a" in prov or "3 tier" in prov)) or \
+                   ("2a" in tc and ("2a" in prov or "2 tier" in prov)) or \
+                   ("1a" in tc and ("1a" in prov or "first" in prov)) or \
+                   ("chair" in tc and ("cc" in prov or "chair" in prov)) or \
+                   ("executive" in tc and ("ec" in prov or "executive" in prov)) or \
+                   ("general" in tc and ("unreserved" in prov or "general" in prov)):
+                    match = True
+                    break
+            if not match and not any(k in prov for k in ["express", "shatabdi", "rajdhani"]):
+                return
+
+        if t_lower == "bus" and bus_types:
+            match = False
+            for bt in bus_types:
+                if ("volvo" in bt and "volvo" in prov) or \
+                   ("ac sleeper" in bt and "ac sleeper" in prov) or \
+                   ("semi-sleeper" in bt and "semi" in prov) or \
+                   ("ac seater" in bt and ("ac" in prov or "seater" in prov)) or \
+                   ("non-ac" in bt and "non-ac" in prov):
+                    match = True
+                    break
+            if not match:
+                return
+
+        if t_lower == "flight" and flight_cabins:
+            match = False
+            for fc in flight_cabins:
+                if ("business" in fc and "business" in prov) or \
+                   ("first" in fc and "first" in prov) or \
+                   ("premium" in fc and "premium" in prov) or \
+                   ("economy" in fc and ("economy" in prov or "indigo" in prov or "air india" in prov or "emirates" in prov or "flight" in prov or "ba" in prov or "qr" in prov or "sq" in prov)):
+                    match = True
+                    break
+            if not match:
+                return
+
+        if t_lower in ["cab", "taxi"] and cab_types:
+            match = False
+            for ct in cab_types:
+                if ("luxury" in ct and ("luxury" in prov or "black" in prov or "premium" in prov)) or \
+                   ("suv" in ct and "suv" in prov) or \
+                   ("sedan" in ct and ("sedan" in prov or "go" in prov or "uber" in prov or "intercity" in prov)) or \
+                   ("mini" in ct and ("mini" in prov or "auto" in prov)):
+                    match = True
+                    break
+            if not match:
+                return
+
+        if edge.from_node not in edges:
+            edges[edge.from_node] = []
         edges[edge.from_node].append(edge)
 
     # 2. Add hyper-local exact cab fare connections at origin
@@ -383,17 +462,15 @@ def generate_graph(origin: str, destination: str) -> Tuple[Dict[str, RouterNode]
 
     return nodes, edges
 
-    return nodes, edges
-
-def find_routes_dijkstra(origin: str, destination: str, optimize_by: str = "best_value", max_routes: int = 5) -> List[List[RouterEdge]]:
+def find_routes_dijkstra(origin: str, destination: str, optimize_by: str = "best_value", max_routes: int = 5, preferences: dict = None) -> List[List[RouterEdge]]:
     """
     Finds multiple paths using modified Dijkstra search on the transport graph.
-    optimize_by can be: "cheapest", "fastest", "best_value", "eco_friendly", "lowest_risk"
+    optimize_by can be: "cheapest", "fastest", "best_value", "eco_friendly", "lowest_risk", "comfortable_journey"
     """
     origin_title = origin.strip().title()
     dest_title = destination.strip().title()
     
-    nodes, edges = generate_graph(origin_title, dest_title)
+    nodes, edges = generate_graph(origin_title, dest_title, preferences=preferences)
     
     # Weight formulas based on preference
     def get_edge_weight(edge: RouterEdge) -> float:
@@ -406,6 +483,9 @@ def find_routes_dijkstra(origin: str, destination: str, optimize_by: str = "best
         elif optimize_by == "lowest_risk":
             # high delay prob is bad
             return edge.delay_prob * 100 + edge.avg_delay
+        elif optimize_by in ["comfortable_journey", "comfortable"]:
+            # Prioritize higher comfort / lower duration / fewer transfer penalties
+            return (edge.duration * 400) + (edge.delay_prob * 1500) + (80.0 if "Bus" in edge.transport_type else 0.0)
         else: # "best_value"
             # Normalize price and time: price + duration * 1000 + delay_risk * 50
             return edge.price + (edge.duration * 600) + (edge.delay_prob * 1200)

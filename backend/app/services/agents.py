@@ -329,12 +329,12 @@ class PlannerAgent:
 
 class SearchAgent:
     """Gets relevant route links using the graph routing engine."""
-    def gather_routes(self, origin: str, destination: str, optimize_by: str) -> List[List[RouterEdge]]:
+    def gather_routes(self, origin: str, destination: str, optimize_by: str, preferences: dict = None) -> List[List[RouterEdge]]:
         all_paths = []
         seen_sig = set()
         
-        for opt in ["cheapest", "fastest", "eco_friendly", "lowest_risk", "best_value"]:
-            paths = find_routes_dijkstra(origin, destination, optimize_by=opt, max_routes=2)
+        for opt in ["cheapest", "fastest", "eco_friendly", "lowest_risk", "comfortable_journey", "best_value"]:
+            paths = find_routes_dijkstra(origin, destination, optimize_by=opt, max_routes=2, preferences=preferences)
             for path in paths:
                 sig = "+".join([f"{e.transport_type}::{e.provider}" for e in path])
                 if sig not in seen_sig:
@@ -354,6 +354,7 @@ class OptimizationAgent:
         avg_delay = sum(e.avg_delay for e in path)
         reliability = float(max(10, 100 - (delay_prob * 100 * 1.5)))
 
+        leg_comforts = []
         legs_data = []
         for e in path:
             taxes = e.price * 0.18
@@ -371,6 +372,16 @@ class OptimizationAgent:
                 "airport_transfer": 450.0 if "Airport" in e.to_node or "Airport" in e.from_node else 0.0
             }
             
+            prov = e.provider.lower()
+            if "first" in prov or "1a" in prov or "business" in prov or "luxury" in prov or "volvo" in prov:
+                leg_comforts.append(9.5)
+            elif "2a" in prov or "3a" in prov or "ac sleeper" in prov or "sedan" in prov or "suv" in prov:
+                leg_comforts.append(8.6)
+            elif "sleeper" in prov or "semi" in prov or "ac" in prov:
+                leg_comforts.append(7.2)
+            else:
+                leg_comforts.append(5.5)
+
             # Generate real, official booking URL based on transport type
             if e.transport_type == "Flight":
                 link = f"https://www.google.com/travel/flights?q=Flights%20to%20{e.to_node}%20from%20{e.from_node}"
@@ -395,11 +406,15 @@ class OptimizationAgent:
                 "delay_probability": e.delay_prob,
                 "average_delay": e.avg_delay,
                 "refundability": e.refundability,
-                "seat_class": "Economy Standard" if "Flight" in e.transport_type else "General / Cab Standard",
+                "seat_class": "Standard",
                 "carbon_footprint": e.carbon,
                 "booking_link": link,
                 "hidden_costs": json.dumps(hidden_breakdown)
             })
+
+        avg_leg_c = (sum(leg_comforts) / max(1, len(leg_comforts))) if leg_comforts else 8.0
+        transfer_penalty = (len(path) - 1) * 0.5
+        comfort_score = round(max(3.5, min(9.9, avg_leg_c - transfer_penalty)), 1)
 
         return {
             "type": "Recommendation",
@@ -409,6 +424,7 @@ class OptimizationAgent:
             "reliability_score": round(reliability, 1),
             "delay_probability": round(delay_prob, 2),
             "average_delay": round(avg_delay, 1),
+            "comfort_score": comfort_score,
             "legs": legs_data,
             "is_saved": False
         }
@@ -1002,7 +1018,7 @@ class TravelAgentSystem:
         self.budget_advisor = BudgetAdvisorAgent()
 
     def process_universal_search(self, origin: str, destination: str, date: str, budget: float = None, preferences: dict = None) -> List[Dict[str, Any]]:
-        raw_paths = self.search.gather_routes(origin, destination, preferences.get("optimize_by", "best_value") if preferences else "best_value")
+        raw_paths = self.search.gather_routes(origin, destination, preferences.get("optimize_by", "best_value") if preferences else "best_value", preferences=preferences)
         
         itineraries = []
         for idx, path in enumerate(raw_paths):

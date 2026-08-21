@@ -338,8 +338,12 @@ class ApiService {
   }
 
   // Helper Mock Search Data Generator
-  static List<Itinerary> _getMockSearchResults(String org, String dst, double? budget) {
-    return [
+  static List<Itinerary> _getMockSearchResults(String org, String dst, double? budget, [Map<String, dynamic>? preferences]) {
+    final enabledModes = preferences?['enabled_modes'] != null
+        ? List<String>.from(preferences!['enabled_modes'])
+        : ['Train', 'Bus', 'Flight', 'Cab'];
+
+    final rawList = [
       Itinerary(
         id: 1,
         type: 'Best Value',
@@ -349,11 +353,12 @@ class ApiService {
         reliabilityScore: 94.5,
         delayProbability: 0.08,
         averageDelay: 10.0,
-        aiExplanation: 'Optimal combination of low transit overhead, competitive pricing, and high punctuality.',
+        comfortScore: 8.7,
+        aiExplanation: 'Optimal multi-modal route combining your selected transport modes and comfort preferences.',
         legs: [
           ItineraryLeg(
             transportType: 'Cab',
-            provider: 'Uber Intercity',
+            provider: 'Uber Intercity (Standard Sedan)',
             origin: org,
             destination: '$org Airport (LKO)',
             departureTime: '08:00',
@@ -369,7 +374,7 @@ class ApiService {
           ),
           ItineraryLeg(
             transportType: 'Flight',
-            provider: 'IndiGo 6E-205',
+            provider: 'IndiGo 6E-205 (Economy)',
             origin: '$org Airport (LKO)',
             destination: '$dst Airport (BLR)',
             departureTime: '11:00',
@@ -413,7 +418,7 @@ class ApiService {
           averageDelay: 10.0,
         ),
         explanationDetails: ExplanationDetails(
-          whySelected: 'Balanced cost and comfort for multi-modal travel.',
+          whySelected: 'Matches your selected transport and comfort preferences.',
           pros: ['Saves 8 hours over rail', 'Clean airport metro transfer'],
           cons: ['Requires intercity cab to airport'],
           tradeOffs: 'Slightly higher cost than train, but saves an entire day of travel.',
@@ -430,11 +435,12 @@ class ApiService {
         reliabilityScore: 88.0,
         delayProbability: 0.18,
         averageDelay: 25.0,
-        aiExplanation: 'Cheapest alternative utilizing express sleeper rail and local auto rickshaws.',
+        comfortScore: 8.2,
+        aiExplanation: 'Selected because you enabled rail travel and budget options between $org and $dst.',
         legs: [
           ItineraryLeg(
             transportType: 'Train',
-            provider: 'Shatabdi Express',
+            provider: 'Shatabdi Express (3A / 2A)',
             origin: org,
             destination: dst,
             departureTime: '18:00',
@@ -451,7 +457,7 @@ class ApiService {
           ),
           ItineraryLeg(
             transportType: 'Cab',
-            provider: 'Auto Rickshaw',
+            provider: 'Auto Rickshaw / Uber Go',
             origin: '$dst Station',
             destination: dst,
             departureTime: '07:45',
@@ -487,6 +493,17 @@ class ApiService {
         ),
       ),
     ];
+
+    return rawList.where((it) {
+      for (final leg in it.legs) {
+        final t = leg.transportType.toLowerCase();
+        if (t == 'flight' && !enabledModes.map((e) => e.toLowerCase()).contains('flight')) return false;
+        if (t == 'train' && !enabledModes.map((e) => e.toLowerCase()).contains('train')) return false;
+        if (t == 'bus' && !enabledModes.map((e) => e.toLowerCase()).contains('bus')) return false;
+        if ((t == 'cab' || t == 'taxi' || t == 'auto') && !enabledModes.map((e) => e.toLowerCase()).contains('cab')) return false;
+      }
+      return true;
+    }).toList();
   }
 
   static Map<String, dynamic> _getMockChatResponse(String msg) {

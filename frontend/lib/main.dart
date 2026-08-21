@@ -132,6 +132,13 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   bool _refundableOnly = false;
   bool _ecoFriendlyOnly = false;
 
+  // Transport & Comfort Preferences State
+  Set<String> _enabledModes = {'Train', 'Bus', 'Flight', 'Cab'};
+  Set<String> _selectedTrainClasses = {'Sleeper (SL)', 'AC 3 Tier (3A)', 'AC 2 Tier (2A)'};
+  Set<String> _selectedBusTypes = {'AC Semi-Sleeper', 'AC Sleeper', 'Volvo / Premium Coach'};
+  Set<String> _selectedFlightCabins = {'Economy', 'Premium Economy'};
+  Set<String> _selectedCabTypes = {'Standard Sedan', 'SUV'};
+
   List<Itinerary> _searchResults = [];
   bool _isSearching = false;
 
@@ -786,6 +793,11 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
         'non_stop': _nonStopOnly,
         'refundable': _refundableOnly,
         'eco_friendly': _ecoFriendlyOnly,
+        'enabled_modes': _enabledModes.toList(),
+        'train_classes': _selectedTrainClasses.toList(),
+        'bus_types': _selectedBusTypes.toList(),
+        'flight_cabins': _selectedFlightCabins.toList(),
+        'cab_types': _selectedCabTypes.toList(),
       },
     );
 
@@ -2197,6 +2209,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                         ),
                         items: const [
                           DropdownMenuItem(value: 'best_value', child: Text('✨ Best Value (Hybrid)')),
+                          DropdownMenuItem(value: 'comfortable_journey', child: Text('🛋️ Comfortable Journey')),
                           DropdownMenuItem(value: 'cheapest', child: Text('💰 Cheapest Fare')),
                           DropdownMenuItem(value: 'fastest', child: Text('⚡ Fastest Non-Stop')),
                           DropdownMenuItem(value: 'eco_friendly', child: Text('🌿 Eco Friendly (CO2)')),
@@ -2284,6 +2297,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                               ),
                               items: const [
                                 DropdownMenuItem(value: 'best_value', child: Text('✨ Best Value (Hybrid)')),
+                                DropdownMenuItem(value: 'comfortable_journey', child: Text('🛋️ Comfortable Journey')),
                                 DropdownMenuItem(value: 'cheapest', child: Text('💰 Cheapest Fare')),
                                 DropdownMenuItem(value: 'fastest', child: Text('⚡ Fastest Non-Stop')),
                                 DropdownMenuItem(value: 'eco_friendly', child: Text('🌿 Eco Friendly (CO2)')),
@@ -2333,6 +2347,10 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                     ),
                   ],
                 ),
+
+                // SECTION: Transport & Comfort Preferences
+                _buildTransportAndComfortPreferencesSection(isDark, inputBg, inputBorder, titleColor, labelTextColor, inputTextColor),
+
                 const SizedBox(height: 24),
 
                 // Main Search Button
@@ -2521,6 +2539,233 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     );
   }
 
+  Widget _buildTransportAndComfortPreferencesSection(bool isDark, Color inputBg, Color inputBorder, Color titleColor, Color labelTextColor, Color inputTextColor) {
+    return Container(
+      margin: const EdgeInsets.only(top: 20, bottom: 4),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF131722) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6366F1).withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.tune_rounded, color: Color(0xFF6366F1), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Transport & Comfort Preferences',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: titleColor),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Select allowed transport modes and specific class & comfort tiers for routing.',
+                      style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '1. Selectable Transport Modes:',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: labelTextColor),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              _buildTransportModeChip('Train', '🚆 Train', isDark, inputBg, inputBorder),
+              _buildTransportModeChip('Bus', '🚌 Bus', isDark, inputBg, inputBorder),
+              _buildTransportModeChip('Flight', '✈️ Flight', isDark, inputBg, inputBorder),
+              _buildTransportModeChip('Cab', '🚕 Cab / Taxi', isDark, inputBg, inputBorder),
+            ],
+          ),
+
+          // 2. Train Class / Comfort Preferences
+          if (_enabledModes.contains('Train')) ...[
+            const SizedBox(height: 16),
+            _buildClassPreferenceGroup(
+              title: '🚆 Preferred Train Classes:',
+              options: const [
+                'General / Unreserved',
+                'Sleeper (SL)',
+                'AC 3 Tier (3A)',
+                'AC 2 Tier (2A)',
+                'First AC (1A)',
+                'Chair Car (CC)',
+                'Executive Chair Car (EC)',
+                'Vande Bharat / Premium Fast Train',
+              ],
+              selectedSet: _selectedTrainClasses,
+              isDark: isDark,
+              inputBg: inputBg,
+              inputBorder: inputBorder,
+              titleColor: labelTextColor,
+            ),
+          ],
+
+          // 3. Bus Comfort Preferences
+          if (_enabledModes.contains('Bus')) ...[
+            const SizedBox(height: 16),
+            _buildClassPreferenceGroup(
+              title: '🚌 Preferred Bus Types:',
+              options: const [
+                'Non-AC Seater',
+                'AC Seater',
+                'Semi-Sleeper',
+                'AC Semi-Sleeper',
+                'Non-AC Sleeper',
+                'AC Sleeper',
+                'Volvo / Premium Coach',
+              ],
+              selectedSet: _selectedBusTypes,
+              isDark: isDark,
+              inputBg: inputBg,
+              inputBorder: inputBorder,
+              titleColor: labelTextColor,
+            ),
+          ],
+
+          // 4. Flight Cabin Preferences
+          if (_enabledModes.contains('Flight')) ...[
+            const SizedBox(height: 16),
+            _buildClassPreferenceGroup(
+              title: '✈️ Preferred Flight Cabins:',
+              options: const [
+                'Economy',
+                'Premium Economy',
+                'Business Class',
+                'First Class',
+              ],
+              selectedSet: _selectedFlightCabins,
+              isDark: isDark,
+              inputBg: inputBg,
+              inputBorder: inputBorder,
+              titleColor: labelTextColor,
+            ),
+          ],
+
+          // 5. Cab / Taxi Comfort Preferences
+          if (_enabledModes.contains('Cab')) ...[
+            const SizedBox(height: 16),
+            _buildClassPreferenceGroup(
+              title: '🚕 Preferred Cab / Taxi Types:',
+              options: const [
+                'Budget / Mini',
+                'Standard Sedan',
+                'SUV',
+                'Premium Sedan',
+                'Luxury / Premium',
+              ],
+              selectedSet: _selectedCabTypes,
+              isDark: isDark,
+              inputBg: inputBg,
+              inputBorder: inputBorder,
+              titleColor: labelTextColor,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransportModeChip(String modeKey, String label, bool isDark, Color inputBg, Color inputBorder) {
+    final isSelected = _enabledModes.contains(modeKey);
+    return FilterChip(
+      avatar: isSelected ? const Icon(Icons.check_circle_rounded, size: 16, color: Colors.white) : null,
+      label: Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isSelected ? Colors.white : (isDark ? Colors.grey[300] : Colors.grey[800]))),
+      selected: isSelected,
+      backgroundColor: inputBg,
+      selectedColor: const Color(0xFF6366F1),
+      side: BorderSide(color: isSelected ? const Color(0xFF6366F1) : inputBorder, width: isSelected ? 1.5 : 1.0),
+      onSelected: (selected) {
+        setState(() {
+          if (selected) {
+            _enabledModes.add(modeKey);
+          } else {
+            if (_enabledModes.length > 1) {
+              _enabledModes.remove(modeKey);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('⚠️ At least 1 transport mode must remain enabled.'),
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        });
+      },
+    );
+  }
+
+  Widget _buildClassPreferenceGroup({
+    required String title,
+    required List<String> options,
+    required Set<String> selectedSet,
+    required bool isDark,
+    required Color inputBg,
+    required Color inputBorder,
+    required Color titleColor,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: titleColor)),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: options.map((opt) {
+            final isSelected = selectedSet.contains(opt);
+            return FilterChip(
+              visualDensity: VisualDensity.compact,
+              label: Text(opt, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? const Color(0xFF6366F1) : (isDark ? Colors.grey[400] : Colors.grey[700]))),
+              selected: isSelected,
+              backgroundColor: inputBg,
+              selectedColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+              checkmarkColor: const Color(0xFF6366F1),
+              side: BorderSide(color: isSelected ? const Color(0xFF6366F1) : inputBorder),
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    selectedSet.add(opt);
+                  } else {
+                    selectedSet.remove(opt);
+                  }
+                });
+              },
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   Widget _buildItineraryCard(Itinerary it) {
     final currency = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
     final isDark = widget.isDarkMode;
@@ -2660,6 +2905,21 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       const Icon(Icons.schedule, size: 14, color: Color(0xFF6366F1)),
                       const SizedBox(width: 6),
                       Text('${it.totalDuration} hrs', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: durationTextColor)),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.airline_seat_recline_extra_rounded, size: 14, color: Color(0xFF8B5CF6)),
+                      const SizedBox(width: 6),
+                      Text('Comfort: ${it.comfortScore}/10', style: const TextStyle(color: Color(0xFF8B5CF6), fontSize: 12, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),

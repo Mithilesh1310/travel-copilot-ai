@@ -175,6 +175,7 @@ class Itinerary {
   final double reliabilityScore;
   final double delayProbability;
   final double averageDelay;
+  final double comfortScore;
   final String? aiExplanation;
   final List<ItineraryLeg> legs;
   final bool isSaved;
@@ -191,6 +192,7 @@ class Itinerary {
     required this.reliabilityScore,
     required this.delayProbability,
     required this.averageDelay,
+    this.comfortScore = 8.5,
     this.aiExplanation,
     required this.legs,
     this.isSaved = false,
@@ -209,6 +211,7 @@ class Itinerary {
       reliabilityScore: (json['reliability_score'] as num?)?.toDouble() ?? 95.0,
       delayProbability: (json['delay_probability'] as num?)?.toDouble() ?? 0.0,
       averageDelay: (json['average_delay'] as num?)?.toDouble() ?? 0.0,
+      comfortScore: (json['comfort_score'] as num?)?.toDouble() ?? 8.5,
       aiExplanation: json['ai_explanation'],
       legs: (json['legs'] as List<dynamic>?)
               ?.map((e) => ItineraryLeg.fromJson(e))

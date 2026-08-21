@@ -94,6 +94,7 @@ class ItineraryResponse(BaseModel):
     reliability_score: float
     delay_probability: float
     average_delay: float
+    comfort_score: Optional[float] = 8.5
     ai_explanation: Optional[str] = None
     legs: List[ItineraryLegResponse]
     is_saved: bool = False
