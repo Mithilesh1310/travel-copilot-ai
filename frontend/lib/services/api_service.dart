@@ -11,7 +11,7 @@ class GetMeResult {
 }
 
 class ApiService {
-  static String get baseUrl => kReleaseMode || kIsWeb
+  static String get baseUrl => kReleaseMode
       ? 'https://travel-copilot-ai.onrender.com/api'
       : 'http://localhost:8000/api';
 

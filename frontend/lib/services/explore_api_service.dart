@@ -6,9 +6,9 @@ import 'package:latlong2/latlong.dart';
 import '../models/explore_models.dart';
 
 class ExploreApiService {
-  static String get baseUrl => kReleaseMode || kIsWeb
+  static String get baseUrl => kReleaseMode
       ? 'https://travel-copilot-ai.onrender.com/api/explore'
-      : 'http://127.0.0.1:8000/api/explore';
+      : 'http://localhost:8000/api/explore';
 
   static Future<Map<String, dynamic>> fetchLiveGpsLocation() async {
     try {
