@@ -524,6 +524,143 @@ class BudgetOptimizationResult {
   }
 }
 
+class ExactDestinationInfo {
+  final String exactName;
+  final String formattedAddress;
+  final double lat;
+  final double lng;
+  final String city;
+
+  ExactDestinationInfo({
+    required this.exactName,
+    required this.formattedAddress,
+    required this.lat,
+    required this.lng,
+    required this.city,
+  });
+
+  factory ExactDestinationInfo.fromJson(Map<String, dynamic> json) {
+    return ExactDestinationInfo(
+      exactName: json['exact_name'] ?? json['name'] ?? 'Destination',
+      formattedAddress: json['formatted_address'] ?? json['address'] ?? '',
+      lat: (json['lat'] as num?)?.toDouble() ?? 26.8467,
+      lng: (json['lng'] as num?)?.toDouble() ?? 80.9467,
+      city: json['city'] ?? 'Destination City',
+    );
+  }
+}
+
+class RecommendedHotelItem {
+  final String id;
+  final String name;
+  final double lat;
+  final double lng;
+  final String distanceKm;
+  final String rating;
+  final double pricePerNight;
+  final double totalStayCost;
+  final String aiReason;
+  final String bookingLink;
+
+  RecommendedHotelItem({
+    required this.id,
+    required this.name,
+    required this.lat,
+    required this.lng,
+    required this.distanceKm,
+    required this.rating,
+    required this.pricePerNight,
+    required this.totalStayCost,
+    required this.aiReason,
+    required this.bookingLink,
+  });
+
+  factory RecommendedHotelItem.fromJson(Map<String, dynamic> json) {
+    return RecommendedHotelItem(
+      id: json['id'] ?? 'hotel_${DateTime.now().millisecondsSinceEpoch}',
+      name: json['name'] ?? 'Recommended Hotel',
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
+      distanceKm: json['distance_km'] ?? json['distance'] ?? '1.2 km',
+      rating: json['rating']?.toString() ?? '4.2',
+      pricePerNight: (json['price_per_night'] as num?)?.toDouble() ?? 2500.0,
+      totalStayCost: (json['total_stay_cost'] as num?)?.toDouble() ?? 7500.0,
+      aiReason: json['ai_reason'] ?? json['reason'] ?? 'Recommended for your budget',
+      bookingLink: json['booking_link'] ?? '',
+    );
+  }
+}
+
+class RecommendedPlaceItem {
+  final String id;
+  final String name;
+  final String category;
+  final double lat;
+  final double lng;
+  final String distanceKm;
+  final double estimatedCost;
+  final String visitDuration;
+  final String aiReason;
+
+  RecommendedPlaceItem({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.lat,
+    required this.lng,
+    required this.distanceKm,
+    required this.estimatedCost,
+    required this.visitDuration,
+    required this.aiReason,
+  });
+
+  factory RecommendedPlaceItem.fromJson(Map<String, dynamic> json) {
+    return RecommendedPlaceItem(
+      id: json['id'] ?? 'place_${DateTime.now().millisecondsSinceEpoch}',
+      name: json['name'] ?? 'Attraction Spot',
+      category: json['category'] ?? 'Sightseeing',
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
+      distanceKm: json['distance_km'] ?? '2.0 km',
+      estimatedCost: (json['estimated_cost'] as num?)?.toDouble() ?? 0.0,
+      visitDuration: json['visit_duration'] ?? '1-2 hrs',
+      aiReason: json['ai_reason'] ?? 'Must-visit place near destination',
+    );
+  }
+}
+
+class JourneyRouteStopItem {
+  final String id;
+  final String name;
+  final String category;
+  final double lat;
+  final double lng;
+  final String distanceFromOrigin;
+  final String aiReason;
+
+  JourneyRouteStopItem({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.lat,
+    required this.lng,
+    required this.distanceFromOrigin,
+    required this.aiReason,
+  });
+
+  factory JourneyRouteStopItem.fromJson(Map<String, dynamic> json) {
+    return JourneyRouteStopItem(
+      id: json['id'] ?? 'stop_${DateTime.now().millisecondsSinceEpoch}',
+      name: json['name'] ?? 'Route Stop',
+      category: json['category'] ?? 'Scenic Stop',
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
+      distanceFromOrigin: json['distance_from_origin'] ?? '50 km',
+      aiReason: json['ai_reason'] ?? 'Recommended travel break point',
+    );
+  }
+}
+
 class AIBudgetAnalysisReport {
   final double totalBudget;
   final double recommendedBudget;
@@ -551,6 +688,11 @@ class AIBudgetAnalysisReport {
   final String scenarioHigher;
   final String scenarioLower;
   final BudgetOptimizationResult? optimizationResult;
+  final ExactDestinationInfo? exactDestination;
+  final String aiDestinationSummary;
+  final List<RecommendedHotelItem> recommendedHotelsList;
+  final List<RecommendedPlaceItem> placesToVisitList;
+  final List<JourneyRouteStopItem> journeyRouteStops;
 
   AIBudgetAnalysisReport({
     required this.totalBudget,
@@ -579,6 +721,11 @@ class AIBudgetAnalysisReport {
     required this.scenarioHigher,
     required this.scenarioLower,
     this.optimizationResult,
+    this.exactDestination,
+    this.aiDestinationSummary = '',
+    this.recommendedHotelsList = const [],
+    this.placesToVisitList = const [],
+    this.journeyRouteStops = const [],
   });
 
   factory AIBudgetAnalysisReport.fromJson(Map<String, dynamic> json) {
@@ -629,6 +776,22 @@ class AIBudgetAnalysisReport {
       optimizationResult: json['optimization_result'] != null
           ? BudgetOptimizationResult.fromJson(json['optimization_result'])
           : null,
+      exactDestination: json['exact_destination'] != null
+          ? ExactDestinationInfo.fromJson(json['exact_destination'])
+          : null,
+      aiDestinationSummary: json['ai_destination_summary'] ?? '',
+      recommendedHotelsList: (json['recommended_hotels'] as List<dynamic>?)
+              ?.map((e) => RecommendedHotelItem.fromJson(e))
+              .toList() ??
+          [],
+      placesToVisitList: (json['places_to_visit'] as List<dynamic>?)
+              ?.map((e) => RecommendedPlaceItem.fromJson(e))
+              .toList() ??
+          [],
+      journeyRouteStops: (json['route_stops'] as List<dynamic>?)
+              ?.map((e) => JourneyRouteStopItem.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 }

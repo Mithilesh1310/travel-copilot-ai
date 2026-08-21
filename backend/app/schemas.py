@@ -189,6 +189,45 @@ class BudgetOptimizationResult(BaseModel):
     savings: float
     explanation: str
 
+class ExactDestinationSchema(BaseModel):
+    exact_name: str
+    formatted_address: str
+    lat: float
+    lng: float
+    city: str
+
+class RecommendedHotelSchema(BaseModel):
+    id: str
+    name: str
+    lat: float
+    lng: float
+    distance_km: str
+    rating: str
+    price_per_night: float
+    total_stay_cost: float
+    ai_reason: str
+    booking_link: Optional[str] = ""
+
+class RecommendedPlaceSchema(BaseModel):
+    id: str
+    name: str
+    category: str
+    lat: float
+    lng: float
+    distance_km: str
+    estimated_cost: float
+    visit_duration: str
+    ai_reason: str
+
+class RouteStopSchema(BaseModel):
+    id: str
+    name: str
+    category: str
+    lat: float
+    lng: float
+    distance_from_origin: str
+    ai_reason: str
+
 class AIBudgetAnalysisResponse(BaseModel):
     total_budget: float
     recommended_budget: float
@@ -216,6 +255,11 @@ class AIBudgetAnalysisResponse(BaseModel):
     optimization_scenario_higher: str
     optimization_scenario_lower: str
     optimization_result: Optional[BudgetOptimizationResult] = None
+    exact_destination: Optional[ExactDestinationSchema] = None
+    ai_destination_summary: Optional[str] = ""
+    recommended_hotels: List[RecommendedHotelSchema] = []
+    places_to_visit: List[RecommendedPlaceSchema] = []
+    route_stops: List[RouteStopSchema] = []
 
 
 class AnalyticsResponse(BaseModel):

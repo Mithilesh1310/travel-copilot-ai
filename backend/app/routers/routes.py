@@ -10,13 +10,24 @@ from ..services.agents import TravelAgentSystem
 router = APIRouter()
 agent_system = TravelAgentSystem()
 
-@router.put("/user/preferences", response_model=schemas.UserResponse)
-def update_preferences(pref_data: schemas.UserPreferencesUpdate, user_id: int = 1, db: Session = Depends(get_db)):
-    # Hardcoded user_id=1 for ease of use in demo profiles
+def ensure_user_exists(db: Session, user_id: int = 1) -> models.User:
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-        
+        user = models.User(
+            id=user_id,
+            email=f"traveler_{user_id}@example.com",
+            name="Demo Traveler",
+            hashed_password="demo_hashed_password",
+            auth_provider="email"
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
+
+@router.put("/user/preferences", response_model=schemas.UserResponse)
+def update_preferences(pref_data: schemas.UserPreferencesUpdate, user_id: int = 1, db: Session = Depends(get_db)):
+    user = ensure_user_exists(db, user_id)
     user.preferences = json.dumps(pref_data.preferences)
     db.commit()
     db.refresh(user)
@@ -36,6 +47,7 @@ def search_trips(request: schemas.SearchRequest, user_id: int = 1, db: Session =
 
 @router.post("/chat", response_model=schemas.ChatResponse)
 def chat_message(request: schemas.ChatRequest, user_id: int = 1, db: Session = Depends(get_db)):
+    ensure_user_exists(db, user_id)
     # Save user message to DB
     user_chat = models.ChatHistory(user_id=user_id, content=request.message, is_bot=False)
     db.add(user_chat)
@@ -61,6 +73,7 @@ def get_user_trips(user_id: int = 1, db: Session = Depends(get_db)):
 
 @router.post("/user/trips", response_model=schemas.TripResponse)
 def save_trip_itinerary(itinerary_data: schemas.ItineraryResponse, origin: str, destination: str, start_date: str, budget: float = None, user_id: int = 1, db: Session = Depends(get_db)):
+    ensure_user_exists(db, user_id)
     # 1. Create Trip row
     trip = models.Trip(
         user_id=user_id,
@@ -169,6 +182,7 @@ def get_user_analytics(user_id: int = 1, db: Session = Depends(get_db)):
 
 @router.get("/notifications", response_model=List[schemas.NotificationResponse])
 def get_notifications(user_id: int = 1, db: Session = Depends(get_db)):
+    ensure_user_exists(db, user_id)
     # Fetch demo notifications
     db_notifs = db.query(models.Notification).filter(models.Notification.user_id == user_id).all()
     if not db_notifs:

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'models/travel_models.dart';
@@ -184,6 +185,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   AIBudgetAnalysisReport? _budgetReport;
   bool _isLoadingBudgetReport = false;
   bool _isOptimizedApplied = false;
+  final MapController _financialAdvisorMapController = MapController();
+  RecommendedHotelItem? _selectedFinancialHotel;
+  dynamic _financialActiveMapTarget;
 
   // Explore Mode state
   final TextEditingController _exploreLocationController =
@@ -3607,6 +3611,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           ],
           const SizedBox(height: 20),
 
+          // NEW: DESTINATION INTELLIGENCE, INTERACTIVE MAP & RECOMMENDATIONS
+          _buildDestinationMapAndRecommendationsSection(report, isMobile),
+
           // 8. HOTEL OPTIMIZATION & 10. HIDDEN EXPENSE ANALYSIS
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -4011,6 +4018,813 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDestinationMapAndRecommendationsSection(AIBudgetAnalysisReport report, bool isMobile) {
+    final currency = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
+    final dest = report.exactDestination;
+    if (dest == null) return const SizedBox.shrink();
+
+    final destLatLng = LatLng(dest.lat, dest.lng);
+
+    final selectedHotel = _selectedFinancialHotel ?? (report.recommendedHotelsList.isNotEmpty ? report.recommendedHotelsList.first : null);
+    final hotelAlloc = report.allocations.firstWhere(
+      (a) => a.category == 'Hotels',
+      orElse: () => BudgetAllocation(category: 'Hotels', amount: report.totalBudget * 0.25, percentage: 25, status: 'Good', reason: ''),
+    );
+    final selectedHotelTotalCost = selectedHotel != null ? selectedHotel.totalStayCost : (report.hotelOptimization.recommendedPrice * _plannerStayDays);
+    final remainingHotelReserve = hotelAlloc.amount - selectedHotelTotalCost;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. AI DESTINATION INTELLIGENCE SUMMARY CARD
+        Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.place, color: Color(0xFF6366F1), size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                dest.exactName,
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  dest.city,
+                                  style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 11),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (dest.formattedAddress.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              dest.formattedAddress,
+                              style: const TextStyle(color: Colors.grey, fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        '${dest.lat.toStringAsFixed(4)}, ${dest.lng.toStringAsFixed(4)}',
+                        style: const TextStyle(color: Color(0xFF8B5CF6), fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.auto_awesome, color: Color(0xFF6366F1), size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          report.aiDestinationSummary.isNotEmpty
+                              ? report.aiDestinationSummary
+                              : 'AI analyzed your budget and stay duration for ${dest.exactName} and mapped optimal hotels, sightseeing spots, and route break points.',
+                          style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // 2. INTERACTIVE TRIP MAP
+        Card(
+          elevation: 3,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                color: widget.isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
+                child: Row(
+                  children: [
+                    const Icon(Icons.map, color: Color(0xFF6366F1), size: 20),
+                    const SizedBox(width: 8),
+                    const Text('📍 Interactive Destination & Budget Map', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    const Spacer(),
+                    _buildMapLegendChip('📍 Target', const Color(0xFFEF4444)),
+                    const SizedBox(width: 6),
+                    _buildMapLegendChip('🏨 Hotels', const Color(0xFF10B981)),
+                    const SizedBox(width: 6),
+                    _buildMapLegendChip('📸 Sightseeing', const Color(0xFFF59E0B)),
+                    if (report.journeyRouteStops.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      _buildMapLegendChip('🚏 Route Stop', const Color(0xFF8B5CF6)),
+                    ],
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 380,
+                child: Stack(
+                  children: [
+                    FlutterMap(
+                      mapController: _financialAdvisorMapController,
+                      options: MapOptions(
+                        initialCenter: destLatLng,
+                        initialZoom: 13.5,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.travelcopilot.ai',
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            // 📍 Exact Destination Marker
+                            Marker(
+                              point: destLatLng,
+                              width: 140,
+                              height: 60,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() => _financialActiveMapTarget = dest);
+                                },
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEF4444),
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                                      ),
+                                      child: Text(
+                                        '📍 ${dest.exactName}',
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const Icon(Icons.location_on, color: Color(0xFFEF4444), size: 28),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // 🏨 Recommended Hotels Markers
+                            ...report.recommendedHotelsList.map((hotel) {
+                              final isSelected = selectedHotel?.id == hotel.id;
+                              return Marker(
+                                point: LatLng(hotel.lat, hotel.lng),
+                                width: 140,
+                                height: 60,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedFinancialHotel = hotel;
+                                      _financialActiveMapTarget = hotel;
+                                    });
+                                    _financialAdvisorMapController.move(LatLng(hotel.lat, hotel.lng), 14.5);
+                                  },
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isSelected ? const Color(0xFF10B981) : const Color(0xFF059669),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: isSelected ? Border.all(color: Colors.white, width: 1.5) : null,
+                                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                                        ),
+                                        child: Text(
+                                          '🏨 ₹${hotel.pricePerNight.toInt()}/n',
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9),
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.hotel,
+                                        color: isSelected ? const Color(0xFF10B981) : const Color(0xFF047857),
+                                        size: isSelected ? 28 : 22,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+
+                            // 📸 Places to Visit Markers
+                            ...report.placesToVisitList.map((place) {
+                              return Marker(
+                                point: LatLng(place.lat, place.lng),
+                                width: 140,
+                                height: 60,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() => _financialActiveMapTarget = place);
+                                    _financialAdvisorMapController.move(LatLng(place.lat, place.lng), 14.5);
+                                  },
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFD97706),
+                                          borderRadius: BorderRadius.circular(8),
+                                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                                        ),
+                                        child: Text(
+                                          '📸 ${place.name}',
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const Icon(Icons.camera_alt, color: Color(0xFFD97706), size: 22),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+
+                            // 🚏 Route Stops Markers
+                            ...report.journeyRouteStops.map((stop) {
+                              return Marker(
+                                point: LatLng(stop.lat, stop.lng),
+                                width: 140,
+                                height: 60,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() => _financialActiveMapTarget = stop);
+                                    _financialAdvisorMapController.move(LatLng(stop.lat, stop.lng), 14.0);
+                                  },
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF8B5CF6),
+                                          borderRadius: BorderRadius.circular(8),
+                                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                                        ),
+                                        child: Text(
+                                          '🚏 ${stop.name}',
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const Icon(Icons.directions_bus, color: Color(0xFF8B5CF6), size: 22),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: FloatingActionButton.small(
+                        heroTag: 'recenter_financial_map',
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF6366F1),
+                        tooltip: 'Center Map to Destination',
+                        child: const Icon(Icons.my_location),
+                        onPressed: () {
+                          _financialAdvisorMapController.move(destLatLng, 13.5);
+                        },
+                      ),
+                    ),
+
+                    if (_financialActiveMapTarget != null)
+                      Positioned(
+                        bottom: 12,
+                        left: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: widget.isDarkMode ? const Color(0xFF111827) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
+                            border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.info, color: Color(0xFF6366F1), size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _financialActiveMapTarget is RecommendedHotelItem
+                                          ? '🏨 Hotel: ${(_financialActiveMapTarget as RecommendedHotelItem).name}'
+                                          : (_financialActiveMapTarget is RecommendedPlaceItem
+                                              ? '📸 Place: ${(_financialActiveMapTarget as RecommendedPlaceItem).name}'
+                                              : (_financialActiveMapTarget is JourneyRouteStopItem
+                                                  ? '🚏 Stop: ${(_financialActiveMapTarget as JourneyRouteStopItem).name}'
+                                                  : '📍 Destination: ${dest.exactName}')),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                    Text(
+                                      _financialActiveMapTarget is RecommendedHotelItem
+                                          ? '${(_financialActiveMapTarget as RecommendedHotelItem).distanceKm} • ${currency.format((_financialActiveMapTarget as RecommendedHotelItem).pricePerNight)}/night'
+                                          : (_financialActiveMapTarget is RecommendedPlaceItem
+                                              ? '${(_financialActiveMapTarget as RecommendedPlaceItem).distanceKm} • Category: ${(_financialActiveMapTarget as RecommendedPlaceItem).category}'
+                                              : dest.formattedAddress),
+                                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close, size: 18),
+                                onPressed: () => setState(() => _financialActiveMapTarget = null),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // 3. AI RECOMMENDED HOTELS SECTION
+        Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.hotel, color: Color(0xFF10B981), size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      '🏨 AI Recommended Hotels (Near ${dest.exactName})',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Hotel Allocation: ${currency.format(hotelAlloc.amount)}',
+                        style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: report.recommendedHotelsList.map((hotel) {
+                      final isSelected = selectedHotel?.id == hotel.id;
+                      return Container(
+                        width: 270,
+                        margin: const EdgeInsets.only(right: 14),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF10B981).withValues(alpha: 0.08)
+                              : (widget.isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC)),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF10B981) : (widget.isDarkMode ? const Color(0xFF374151) : const Color(0xFFE2E8F0)),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    hotel.name,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.star, size: 12, color: Colors.amber),
+                                      const SizedBox(width: 2),
+                                      Text(hotel.rating, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.amber)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on, size: 12, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(hotel.distanceKm, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      currency.format(hotel.pricePerNight) + '/night',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF10B981)),
+                                    ),
+                                    Text(
+                                      'Total Stay (${_plannerStayDays}d): ${currency.format(hotel.totalStayCost)}',
+                                      style: const TextStyle(color: Colors.grey, fontSize: 10),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '💡 AI Reason: ${hotel.aiReason}',
+                              style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                    ),
+                                    icon: const Icon(Icons.map, size: 14),
+                                    label: const Text('View on Map', style: TextStyle(fontSize: 11)),
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedFinancialHotel = hotel;
+                                        _financialActiveMapTarget = hotel;
+                                      });
+                                      _financialAdvisorMapController.move(LatLng(hotel.lat, hotel.lng), 14.5);
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isSelected ? const Color(0xFF059669) : const Color(0xFF10B981),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                    ),
+                                    icon: Icon(isSelected ? Icons.check_circle : Icons.bookmark_add, size: 14),
+                                    label: Text(isSelected ? 'Selected' : 'Select Hotel', style: const TextStyle(fontSize: 11)),
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedFinancialHotel = hotel;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // 4. PLACES TO VISIT SECTION
+        Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.camera_alt, color: Color(0xFFF59E0B), size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      '📸 Places Worth Visiting (Near ${dest.exactName})',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: report.placesToVisitList.map((place) {
+                    return SizedBox(
+                      width: isMobile ? (MediaQuery.of(context).size.width - 48) : 260,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: widget.isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: widget.isDarkMode ? const Color(0xFF374151) : const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    place.name,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    place.category,
+                                    style: const TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 10),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Text('${place.distanceKm} away', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                                const Spacer(),
+                                Text('Est. Cost: ${place.estimatedCost > 0 ? currency.format(place.estimatedCost) : "Free"}',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF10B981))),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '💡 AI Reason: ${place.aiReason}',
+                              style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(50, 24)),
+                                icon: const Icon(Icons.map, size: 12),
+                                label: const Text('View on Map', style: TextStyle(fontSize: 11)),
+                                onPressed: () {
+                                  setState(() => _financialActiveMapTarget = place);
+                                  _financialAdvisorMapController.move(LatLng(place.lat, place.lng), 14.5);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        if (report.journeyRouteStops.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.directions_bus, color: Color(0xFF8B5CF6), size: 22),
+                      SizedBox(width: 8),
+                      Text('🚏 Route Intelligence & Journey Break Points', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  ...report.journeyRouteStops.map((stop) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(
+                            backgroundColor: Color(0xFF8B5CF6),
+                            radius: 16,
+                            child: Icon(Icons.place, color: Colors.white, size: 16),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(stop.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                Text('${stop.category} • ${stop.distanceFromOrigin}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                                const SizedBox(height: 2),
+                                Text('💡 ${stop.aiReason}', style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic)),
+                              ],
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.map, size: 12),
+                            label: const Text('View', style: TextStyle(fontSize: 11)),
+                            onPressed: () {
+                              setState(() => _financialActiveMapTarget = stop);
+                              _financialAdvisorMapController.move(LatLng(stop.lat, stop.lng), 14.0);
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+
+        if (selectedHotel != null) ...[
+          Card(
+            elevation: 2,
+            color: const Color(0xFF10B981).withValues(alpha: 0.08),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.account_balance, color: Color(0xFF10B981), size: 22),
+                      const SizedBox(width: 8),
+                      const Text('💳 Selected Hotel & Dynamic Budget Impact', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: (remainingHotelReserve >= 0 ? const Color(0xFF10B981) : Colors.red).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          remainingHotelReserve >= 0
+                              ? '✔ Within Hotel Allocation'
+                              : '⚠️ Exceeds Allocation by ${currency.format(-remainingHotelReserve)}',
+                          style: TextStyle(
+                            color: remainingHotelReserve >= 0 ? const Color(0xFF10B981) : Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricTile(
+                          'Selected Hotel',
+                          selectedHotel.name,
+                          Icons.hotel,
+                          const Color(0xFF8B5CF6),
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildMetricTile(
+                          'Total Stay Cost (${_plannerStayDays} Nights)',
+                          currency.format(selectedHotelTotalCost),
+                          Icons.payments,
+                          const Color(0xFF10B981),
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildMetricTile(
+                          'Hotel Budget Allocation',
+                          currency.format(hotelAlloc.amount),
+                          Icons.pie_chart,
+                          Colors.blue,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildMetricTile(
+                          remainingHotelReserve >= 0 ? 'Remaining Reserve' : 'Extra Budget Required',
+                          currency.format(remainingHotelReserve.abs()),
+                          Icons.savings,
+                          remainingHotelReserve >= 0 ? Colors.amber : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMapLegendChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10),
       ),
     );
   }

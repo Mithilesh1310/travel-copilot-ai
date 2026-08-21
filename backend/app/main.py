@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .routers import routes, auth, explore
 
-# Initialize SQLite tables
+# Initialize PostgreSQL / SQLite tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
