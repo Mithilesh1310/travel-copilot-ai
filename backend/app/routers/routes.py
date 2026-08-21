@@ -221,8 +221,16 @@ def analyze_budget(req: schemas.BudgetAnalysisRequest):
         origin=req.origin or "Kanpur",
         destination=req.destination or "Bangalore",
         stay_days=req.stay_days or 3,
-        current_plan_cost=req.current_plan_cost
+        current_plan_cost=req.current_plan_cost,
+        lat=req.lat,
+        lng=req.lng
     )
+
+@router.get("/budget/reverse-geocode", response_model=schemas.ExactDestinationSchema)
+def reverse_geocode(lat: float, lng: float):
+    from app.services.smart_explore_service import SmartExploreService
+    res = SmartExploreService.reverse_geocode(lat, lng)
+    return res
 
 @router.get("/hotels")
 def get_live_hotels(destination: str = "Bangalore"):

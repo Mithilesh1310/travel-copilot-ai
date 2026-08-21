@@ -357,6 +357,61 @@ class SmartExploreService:
         return (28.6139, 77.2090)
 
     @classmethod
+    def reverse_geocode(cls, lat: float, lng: float) -> Dict[str, Any]:
+        """Reverse geocodes (lat, lng) to a place name, formatted address, and city using OpenStreetMap Nominatim with spatial fallback."""
+        import urllib.request
+        import json
+
+        cities = {
+            "Bengaluru": (12.9716, 77.5946),
+            "Kanpur": (26.4499, 80.3319),
+            "Lucknow": (26.8467, 80.9467),
+            "New Delhi": (28.6139, 77.2090),
+            "Mumbai": (19.0760, 72.8777),
+            "Manali": (32.2432, 77.1892),
+            "Jaipur": (26.9124, 75.7873),
+            "Varanasi": (25.3176, 82.9739),
+            "Goa": (15.2993, 74.1240),
+            "Agra": (27.1767, 78.0081),
+        }
+
+        try:
+            url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lng}&format=json"
+            req = urllib.request.Request(url, headers={'User-Agent': 'TravelCopilotAI/2.0'})
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+                if data:
+                    addr = data.get('address', {})
+                    name = data.get('name') or addr.get('tourism') or addr.get('amenity') or addr.get('suburb') or addr.get('neighbourhood') or addr.get('road') or addr.get('city') or addr.get('town') or 'Selected Point'
+                    city = addr.get('city') or addr.get('town') or addr.get('county') or addr.get('state') or 'Location'
+                    display_name = data.get('display_name') or f"{name}, {city}"
+                    return {
+                        "exact_name": name,
+                        "formatted_address": display_name,
+                        "city": city,
+                        "lat": lat,
+                        "lng": lng
+                    }
+        except Exception as e:
+            logger.warning(f"Nominatim reverse geocode notice: {e}")
+
+        closest_city = "Selected Location"
+        min_d = 99999.0
+        for c_name, (c_lat, c_lng) in cities.items():
+            d = cls.calculate_distance_km(lat, lng, c_lat, c_lng)
+            if d < min_d:
+                min_d = d
+                closest_city = c_name
+
+        return {
+            "exact_name": f"Selected Spot near {closest_city}" if min_d < 30 else "Custom Map Location",
+            "formatted_address": f"{lat:.4f}, {lng:.4f} ({closest_city})",
+            "city": closest_city,
+            "lat": lat,
+            "lng": lng
+        }
+
+    @classmethod
     def fetch_real_location_pois(cls, location_name: str, base_lat: float, base_lng: float) -> List[Dict[str, Any]]:
         """Queries real factual local POIs around coordinates from Nominatim/OpenStreetMap with disaggregated search and spatial distance validation"""
         import urllib.request

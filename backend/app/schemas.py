@@ -140,6 +140,8 @@ class BudgetAnalysisRequest(BaseModel):
     destination: Optional[str] = "Bangalore"
     stay_days: Optional[int] = 3
     current_plan_cost: Optional[float] = 43200.0
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 class BudgetAllocationItem(BaseModel):
     category: str

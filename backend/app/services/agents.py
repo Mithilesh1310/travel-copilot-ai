@@ -589,7 +589,7 @@ class BudgetAdvisorAgent:
     allocations, saving suggestions, over-budget detection, hotel/payment optimizations,
     hidden expense analysis, daily breakdowns, and AI confidence scoring.
     """
-    def analyze_budget(self, total_budget: float, origin: str = "Kanpur", destination: str = "Bangalore", stay_days: int = 3, current_plan_cost: float = None) -> Dict[str, Any]:
+    def analyze_budget(self, total_budget: float, origin: str = "Kanpur", destination: str = "Bangalore", stay_days: int = 3, current_plan_cost: float = None, lat: float = None, lng: float = None) -> Dict[str, Any]:
         if total_budget <= 0:
             total_budget = 45000.0
         
@@ -764,7 +764,7 @@ class BudgetAdvisorAgent:
         )
 
         # 16. Exact Destination Geocoding & Intelligence
-        dest_intel = self._resolve_destination_intelligence(origin, destination, stay_days, total_budget)
+        dest_intel = self._resolve_destination_intelligence(origin, destination, stay_days, total_budget, lat=lat, lng=lng)
 
         return {
             "total_budget": total_budget,
@@ -816,15 +816,18 @@ class BudgetAdvisorAgent:
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         return round(R * c, 1)
 
-    def _resolve_destination_intelligence(self, origin: str, destination: str, stay_days: int, total_budget: float) -> Dict[str, Any]:
+    def _resolve_destination_intelligence(self, origin: str, destination: str, stay_days: int, total_budget: float, lat: float = None, lng: float = None) -> Dict[str, Any]:
         import urllib.parse
         try:
             from .smart_explore_service import SmartExploreService
-            dest_lat, dest_lng = SmartExploreService.resolve_location_coordinates(destination)
+            if lat is not None and lng is not None:
+                dest_lat, dest_lng = float(lat), float(lng)
+            else:
+                dest_lat, dest_lng = SmartExploreService.resolve_location_coordinates(destination)
             origin_lat, origin_lng = SmartExploreService.resolve_location_coordinates(origin)
         except Exception as err:
             print(f"Notice: Geocode fallback for '{destination}': {err}")
-            dest_lat, dest_lng = 12.9716, 77.5946
+            dest_lat, dest_lng = lat if lat is not None else 12.9716, lng if lng is not None else 77.5946
             origin_lat, origin_lng = 26.4499, 80.3319
 
         dest_clean = destination.strip()

@@ -189,6 +189,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   RecommendedHotelItem? _selectedFinancialHotel;
   dynamic _financialActiveMapTarget;
   int _latestBudgetRequestId = 0;
+  bool _isMapTargetUpdating = false;
+  String _mapTargetUpdatingStatus = '';
 
   // Explore Mode state
   final TextEditingController _exploreLocationController =
@@ -681,6 +683,76 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
           }
         });
       }
+    }
+  }
+
+  void _handleMapClickTarget(LatLng clickedPoint) async {
+    final requestId = ++_latestBudgetRequestId;
+    if (mounted) {
+      setState(() {
+        _isMapTargetUpdating = true;
+        _mapTargetUpdatingStatus = '📍 Pin placed at (${clickedPoint.latitude.toStringAsFixed(4)}, ${clickedPoint.longitude.toStringAsFixed(4)})...';
+      });
+    }
+
+    try {
+      _financialAdvisorMapController.move(clickedPoint, 14.0);
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _mapTargetUpdatingStatus = '🔍 Reverse geocoding location name...';
+      });
+    }
+
+    final geo = await ApiService.reverseGeocode(clickedPoint.latitude, clickedPoint.longitude);
+
+    if (requestId != _latestBudgetRequestId) {
+      debugPrint('[Map Click Request #$requestId] Cancelled because request #$_latestBudgetRequestId is active.');
+      return;
+    }
+
+    final resolvedName = geo['exact_name'] ?? 'Selected Location';
+    final city = geo['city'] ?? 'Location';
+
+    if (mounted) {
+      setState(() {
+        _destinationController.text = resolvedName;
+        _mapTargetUpdatingStatus = '🏨 Searching hotels & sightseeing near $resolvedName...';
+      });
+    }
+
+    final originInput = _originController.text.trim().isNotEmpty ? _originController.text.trim() : 'Kanpur';
+    final report = await ApiService.fetchAIBudgetAnalysis(
+      totalBudget: _plannerTotalBudget,
+      origin: originInput,
+      destination: resolvedName,
+      stayDays: _plannerStayDays,
+      lat: clickedPoint.latitude,
+      lng: clickedPoint.longitude,
+    );
+
+    if (requestId != _latestBudgetRequestId) {
+      debugPrint('[Map Click Request #$requestId] Cancelled before state update.');
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _budgetReport = report;
+        _isMapTargetUpdating = false;
+        _mapTargetUpdatingStatus = '';
+        _selectedFinancialHotel = null;
+        _financialActiveMapTarget = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('📍 Target location updated to $resolvedName! Hotels & Sightseeing refreshed.'),
+          backgroundColor: const Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -4206,6 +4278,9 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       options: MapOptions(
                         initialCenter: destLatLng,
                         initialZoom: 13.5,
+                        onTap: (tapPosition, point) {
+                          _handleMapClickTarget(point);
+                        },
                       ),
                       children: [
                         TileLayer(
@@ -4357,6 +4432,62 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                           ],
                         ),
                       ],
+                    ),
+
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      right: 60,
+                      child: _isMapTargetUpdating
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6366F1),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      _mapTargetUpdatingStatus.isNotEmpty
+                                          ? _mapTargetUpdatingStatus
+                                          : '📍 Updating target location from map...',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.65),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.touch_app, color: Color(0xFF10B981), size: 14),
+                                  SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      'Click anywhere on map to change target location',
+                                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
 
                     Positioned(

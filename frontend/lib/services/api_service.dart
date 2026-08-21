@@ -124,18 +124,26 @@ class ApiService {
     String destination = 'Bangalore',
     int stayDays = 3,
     double? currentPlanCost,
+    double? lat,
+    double? lng,
   }) async {
     try {
+      final Map<String, dynamic> reqBody = {
+        'total_budget': totalBudget,
+        'origin': origin,
+        'destination': destination,
+        'stay_days': stayDays,
+        'current_plan_cost': currentPlanCost ?? (totalBudget * 0.96),
+      };
+      if (lat != null && lng != null) {
+        reqBody['lat'] = lat;
+        reqBody['lng'] = lng;
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/budget/analyze'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'total_budget': totalBudget,
-          'origin': origin,
-          'destination': destination,
-          'stay_days': stayDays,
-          'current_plan_cost': currentPlanCost ?? (totalBudget * 0.96),
-        }),
+        body: jsonEncode(reqBody),
       );
 
       if (response.statusCode == 200) {
@@ -144,6 +152,24 @@ class ApiService {
     } catch (_) {}
 
     return getMockBudgetReport(totalBudget, origin, destination, stayDays, currentPlanCost);
+  }
+
+  static Future<Map<String, dynamic>> reverseGeocode(double lat, double lng) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/budget/reverse-geocode?lat=$lat&lng=$lng'),
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+    } catch (_) {}
+    return {
+      'exact_name': 'Selected Location',
+      'formatted_address': '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}',
+      'city': 'Selected Spot',
+      'lat': lat,
+      'lng': lng,
+    };
   }
 
   static Future<List<HotelItem>> fetchLiveHotels(String destination) async {
