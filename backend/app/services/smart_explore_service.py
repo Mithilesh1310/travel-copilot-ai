@@ -278,7 +278,7 @@ class SmartExploreService:
             "mau": (25.9520, 83.5570),
         }
         for city_key, coords in cities.items():
-            if city_key == loc_clean or f"in {city_key}" in loc_clean:
+            if city_key == loc_clean or city_key in loc_clean or f"in {city_key}" in loc_clean:
                 return coords
 
         import urllib.request

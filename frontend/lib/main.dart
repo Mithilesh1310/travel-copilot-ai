@@ -188,6 +188,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   final MapController _financialAdvisorMapController = MapController();
   RecommendedHotelItem? _selectedFinancialHotel;
   dynamic _financialActiveMapTarget;
+  int _latestBudgetRequestId = 0;
 
   // Explore Mode state
   final TextEditingController _exploreLocationController =
@@ -639,18 +640,47 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   }
 
   void _loadBudgetReport() async {
+    final requestId = ++_latestBudgetRequestId;
     setState(() => _isLoadingBudgetReport = true);
+
+    final originInput = _originController.text.trim().isNotEmpty ? _originController.text.trim() : 'Kanpur';
+    final destInput = _destinationController.text.trim().isNotEmpty ? _destinationController.text.trim() : 'Bangalore';
+
+    debugPrint('[Target Input Request #$requestId] Origin: $originInput -> Destination: $destInput');
+
     final report = await ApiService.fetchAIBudgetAnalysis(
       totalBudget: _plannerTotalBudget,
-      origin: _originController.text.isNotEmpty ? _originController.text : 'Kanpur',
-      destination: _destinationController.text.isNotEmpty ? _destinationController.text : 'Bangalore',
+      origin: originInput,
+      destination: destInput,
       stayDays: _plannerStayDays,
     );
+
+    // 🛑 CANCEL / DISCARD STALE RESPONSE if user changed destination while this network request was pending
+    if (requestId != _latestBudgetRequestId) {
+      debugPrint('[Target Request #$requestId] Discarded stale budget response because request #$_latestBudgetRequestId is active.');
+      return;
+    }
+
     if (mounted) {
       setState(() {
         _budgetReport = report;
         _isLoadingBudgetReport = false;
+        _selectedFinancialHotel = null; // Clear old hotel selection
+        _financialActiveMapTarget = null; // Clear old map overlay popup
       });
+
+      // 📍 EXPLICITLY RECENTER THE MAP CAMERA TO THE NEW DESTINATION COORDINATES
+      if (report.exactDestination != null) {
+        final newCenter = LatLng(report.exactDestination!.lat, report.exactDestination!.lng);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          try {
+            _financialAdvisorMapController.move(newCenter, 13.5);
+            debugPrint('[Map Center Updated] ${report.exactDestination!.exactName} (${newCenter.latitude}, ${newCenter.longitude})');
+          } catch (e) {
+            debugPrint('[Map Sync Notice] $e');
+          }
+        });
+      }
     }
   }
 
@@ -4171,6 +4201,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                 child: Stack(
                   children: [
                     FlutterMap(
+                      key: ValueKey('map_${dest.exactName}_${dest.lat}_${dest.lng}'),
                       mapController: _financialAdvisorMapController,
                       options: MapOptions(
                         initialCenter: destLatLng,

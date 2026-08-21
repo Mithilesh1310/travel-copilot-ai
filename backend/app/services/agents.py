@@ -807,14 +807,24 @@ class BudgetAdvisorAgent:
             "route_stops": dest_intel["route_stops"]
         }
 
+    def _haversine_distance_km(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        import math
+        R = 6371.0
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return round(R * c, 1)
+
     def _resolve_destination_intelligence(self, origin: str, destination: str, stay_days: int, total_budget: float) -> Dict[str, Any]:
         import urllib.parse
         try:
-            from .smart_explore_service import smart_explore_service
-            dest_lat, dest_lng = smart_explore_service.geocode_city(destination)
-            origin_lat, origin_lng = smart_explore_service.geocode_city(origin)
-        except Exception:
-            dest_lat, dest_lng = 26.8467, 80.9467
+            from .smart_explore_service import SmartExploreService
+            dest_lat, dest_lng = SmartExploreService.resolve_location_coordinates(destination)
+            origin_lat, origin_lng = SmartExploreService.resolve_location_coordinates(origin)
+        except Exception as err:
+            print(f"Notice: Geocode fallback for '{destination}': {err}")
+            dest_lat, dest_lng = 12.9716, 77.5946
             origin_lat, origin_lng = 26.4499, 80.3319
 
         dest_clean = destination.strip()
@@ -823,42 +833,56 @@ class BudgetAdvisorAgent:
         city = parts[-1] if len(parts) > 1 else dest_clean
         formatted_address = f"{exact_name}, {city}" if len(parts) > 1 else f"{exact_name}"
 
+        print(f"[Target Input] {destination} -> Resolved: ({dest_lat}, {dest_lng}) Exact: {exact_name}, City: {city}")
+
         hotel_budget = total_budget * 0.25
         target_nightly_rate = round(hotel_budget / max(1, stay_days), 2)
         if target_nightly_rate < 800:
             target_nightly_rate = 1200.0
 
+        # Hotel 1 (0.8 km)
+        h1_lat, h1_lng = round(dest_lat + 0.005, 4), round(dest_lng + 0.004, 4)
+        h1_dist = self._haversine_distance_km(dest_lat, dest_lng, h1_lat, h1_lng)
+
+        # Hotel 2 (1.4 km)
+        h2_lat, h2_lng = round(dest_lat - 0.008, 4), round(dest_lng + 0.006, 4)
+        h2_dist = self._haversine_distance_km(dest_lat, dest_lng, h2_lat, h2_lng)
+
+        # Hotel 3 (2.2 km)
+        h3_lat, h3_lng = round(dest_lat + 0.012, 4), round(dest_lng - 0.007, 4)
+        h3_dist = self._haversine_distance_km(dest_lat, dest_lng, h3_lat, h3_lng)
+
         recommended_hotels = [
             {
                 "id": "hotel_1",
                 "name": f"Grand Stay Suites ({exact_name})",
-                "lat": round(dest_lat + 0.005, 4),
-                "lng": round(dest_lng + 0.004, 4),
-                "distance_km": f"0.8 km from {exact_name}",
+                "lat": h1_lat,
+                "lng": h1_lng,
+                "distance_km": f"{h1_dist} km from {exact_name}",
                 "rating": "4.6",
                 "price_per_night": round(target_nightly_rate * 0.95, 2),
                 "total_stay_cost": round(target_nightly_rate * 0.95 * stay_days, 2),
-                "ai_reason": f"Highest value 4-star hotel within 1 km of {exact_name}.",
+                "ai_reason": f"Highest value 4-star hotel within {h1_dist} km of {exact_name}.",
                 "booking_link": f"https://www.google.com/travel/hotels?q={urllib.parse.quote(exact_name + ' hotel')}"
             },
             {
                 "id": "hotel_2",
                 "name": f"Courtyard Express near {exact_name}",
-                "lat": round(dest_lat - 0.008, 4),
-                "lng": round(dest_lng + 0.006, 4),
-                "distance_km": f"1.4 km from {exact_name}",
+                "lat": h2_lat,
+                "lng": h2_lng,
+                "distance_km": f"{h2_dist} km from {exact_name}",
                 "rating": "4.3",
                 "price_per_night": round(target_nightly_rate * 0.75, 2),
                 "total_stay_cost": round(target_nightly_rate * 0.75 * stay_days, 2),
-                "ai_reason": f"Budget saver saving {round((target_nightly_rate * 0.25) * stay_days)} INR while staying close to {exact_name}.",
+                "ai_reason": f"Budget saver saving {round((target_nightly_rate * 0.25) * stay_days)} INR while staying {h2_dist} km from {exact_name}.",
                 "booking_link": f"https://www.google.com/travel/hotels?q={urllib.parse.quote(exact_name + ' hotel')}"
             },
             {
                 "id": "hotel_3",
                 "name": f"Royal Heritage Hotel ({city})",
-                "lat": round(dest_lat + 0.012, 4),
-                "lng": round(dest_lng - 0.007, 4),
-                "distance_km": f"2.2 km from {exact_name}",
+                "lat": h3_lat,
+                "lng": h3_lng,
+                "distance_km": f"{h3_dist} km from {exact_name}",
                 "rating": "4.8",
                 "price_per_night": round(target_nightly_rate * 1.25, 2),
                 "total_stay_cost": round(target_nightly_rate * 1.25 * stay_days, 2),
@@ -867,14 +891,26 @@ class BudgetAdvisorAgent:
             }
         ]
 
+        p1_lat, p1_lng = dest_lat, dest_lng
+        p1_dist = self._haversine_distance_km(dest_lat, dest_lng, p1_lat, p1_lng)
+
+        p2_lat, p2_lng = round(dest_lat + 0.009, 4), round(dest_lng - 0.005, 4)
+        p2_dist = self._haversine_distance_km(dest_lat, dest_lng, p2_lat, p2_lng)
+
+        p3_lat, p3_lng = round(dest_lat - 0.007, 4), round(dest_lng - 0.008, 4)
+        p3_dist = self._haversine_distance_km(dest_lat, dest_lng, p3_lat, p3_lng)
+
+        p4_lat, p4_lng = round(dest_lat + 0.015, 4), round(dest_lng + 0.011, 4)
+        p4_dist = self._haversine_distance_km(dest_lat, dest_lng, p4_lat, p4_lng)
+
         places_to_visit = [
             {
                 "id": "place_1",
                 "name": f"{exact_name} Main Landmark Zone",
                 "category": "Primary Destination",
-                "lat": dest_lat,
-                "lng": dest_lng,
-                "distance_km": "0.1 km",
+                "lat": p1_lat,
+                "lng": p1_lng,
+                "distance_km": f"{p1_dist} km",
                 "estimated_cost": 0.0,
                 "visit_duration": "1.5 - 2 hrs",
                 "ai_reason": f"Your primary destination! Explore key highlights, architecture, and photography spots."
@@ -883,9 +919,9 @@ class BudgetAdvisorAgent:
                 "id": "place_2",
                 "name": f"{city} Cultural Promenade",
                 "category": "Sightseeing & Heritage",
-                "lat": round(dest_lat + 0.009, 4),
-                "lng": round(dest_lng - 0.005, 4),
-                "distance_km": "1.2 km",
+                "lat": p2_lat,
+                "lng": p2_lng,
+                "distance_km": f"{p2_dist} km",
                 "estimated_cost": 50.0,
                 "visit_duration": "2 hrs",
                 "ai_reason": f"Top rated architectural and cultural attraction near {exact_name}."
@@ -894,9 +930,9 @@ class BudgetAdvisorAgent:
                 "id": "place_3",
                 "name": f"{city} Local Cuisine & Craft Market",
                 "category": "Food & Shopping",
-                "lat": round(dest_lat - 0.007, 4),
-                "lng": round(dest_lng - 0.008, 4),
-                "distance_km": "1.8 km",
+                "lat": p3_lat,
+                "lng": p3_lng,
+                "distance_km": f"{p3_dist} km",
                 "estimated_cost": 300.0,
                 "visit_duration": "2 - 3 hrs",
                 "ai_reason": f"Popular food hub for authentic local dishes and souvenir shopping."
@@ -905,9 +941,9 @@ class BudgetAdvisorAgent:
                 "id": "place_4",
                 "name": f"{city} Eco Park & Gardens",
                 "category": "Nature & Relaxation",
-                "lat": round(dest_lat + 0.015, 4),
-                "lng": round(dest_lng + 0.011, 4),
-                "distance_km": "2.6 km",
+                "lat": p4_lat,
+                "lng": p4_lng,
+                "distance_km": f"{p4_dist} km",
                 "estimated_cost": 20.0,
                 "visit_duration": "1.5 hrs",
                 "ai_reason": f"Peaceful green space ideal for evening walks and relaxation."
