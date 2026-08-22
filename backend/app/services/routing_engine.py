@@ -341,12 +341,12 @@ def generate_graph(origin: str, destination: str, preferences: dict = None) -> T
         station_auto_fare, org_info["station_time_hrs"] + 0.1, "08:05", "08:55",
         0.05, 5.0, 5.0, "Refundable"
     ))
-    # Direct city train station access (allows pure Train routing when Cab is disabled)
+    # Direct station access shuttle if Cab is disabled
     add_edge(RouterEdge(
         org, org_hubs["station"],
-        "Train", f"Local Station Access ({org_info['station_distance_km']} km)",
-        0.0, 0.2, "08:00", "08:15",
-        0.0, 0.0, 0.0, "Refundable"
+        "Metro", f"Station Express Shuttle ({org_info['station_distance_km']} km)",
+        40.0, org_info["station_time_hrs"], "08:00", "08:35",
+        0.02, 2.0, 1.0, "Refundable"
     ))
 
     # Origin -> Airport
@@ -396,7 +396,6 @@ def generate_graph(origin: str, destination: str, preferences: dict = None) -> T
         # Destination Station -> Destination (Domestic Only)
         add_edge(RouterEdge(dst_hubs["station"], dst, "Cab", "Auto Rickshaw / Taxi", 150, 0.4, "12:00", "12:24", 0.05, 5.0, 8.0, "Refundable"))
         add_edge(RouterEdge(dst_hubs["station"], dst, "Metro", "Local Metro", 30, 0.3, "12:00", "12:18", 0.01, 1.0, 0.9, "Refundable"))
-        add_edge(RouterEdge(dst_hubs["station"], dst, "Train", "City Destination Access", 0.0, 0.2, "12:00", "12:15", 0.0, 0.0, 0.0, "Refundable"))
 
     # 3. Add Long Distance Flights (International or Domestic)
     if is_international:

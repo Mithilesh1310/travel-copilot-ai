@@ -346,6 +346,20 @@ class SearchAgent:
 class OptimizationAgent:
     """Collates and structures multi-modal segments into structured itineraries."""
     def format_itinerary(self, path: List[RouterEdge], idx: int) -> Dict[str, Any]:
+        # Collapse consecutive legs of exact same transport_type (e.g. Train -> Train)
+        cleaned_path = []
+        for e in path:
+            if cleaned_path and cleaned_path[-1].transport_type == e.transport_type:
+                prev = cleaned_path[-1]
+                prev.to_node = e.to_node
+                prev.price += e.price
+                prev.duration += e.duration
+                prev.arrival_time = e.arrival_time
+                prev.carbon += e.carbon
+            else:
+                cleaned_path.append(e)
+        path = cleaned_path
+
         total_price = sum(e.price for e in path)
         total_duration = sum(e.duration for e in path)
         total_carbon = sum(e.carbon for e in path)
@@ -481,17 +495,17 @@ class RecommendationAgent:
         
         for it in itineraries:
             labels = []
-            if it == sorted_by_price[0]:
-                labels.append("Cheapest")
-            if it == sorted_by_dur[0]:
+            if it == sorted_by_dur[0] and "Fastest" not in assigned_types:
                 labels.append("Fastest")
-            if it == sorted_by_carbon[0]:
+            elif it == sorted_by_price[0] and "Cheapest" not in assigned_types:
+                labels.append("Cheapest")
+            elif it == sorted_by_carbon[0] and "Eco Friendly" not in assigned_types:
                 labels.append("Eco Friendly")
-            if it == sorted_by_risk[0]:
+            elif it == sorted_by_risk[0] and "Lowest Risk" not in assigned_types:
                 labels.append("Lowest Risk")
                 
             if not labels:
-                labels.append("Best Value" if len(assigned_types) < 2 else "Optimal Route")
+                labels.append("Best Value" if "Best Value" not in assigned_types else "Optimal Route")
                 
             primary_label = labels[0]
             it["type"] = primary_label
